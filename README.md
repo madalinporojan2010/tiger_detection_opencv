@@ -16,9 +16,16 @@ Pentru a lucra:
 
 Modificari in Visual studio:
 
-instalati Github Extensions (Extensions -> Manage Extensions).
-
 Langa Solution Explorer exista un Team explorer. Mergeti pe iconita de Home si alegeti Settings.
 Mergeti pana la Diff & Merge tool si alegeti Visual Studio.
 
-La Manage Connections ar trebui sa va apara Github. Logati-va.
+Daca nu merge sa interactionati cu repository-ul remote:
+
+Intrati in fisierul ``.gitconfig`` din folderul home (C:\users\xxx) si adaugati in sectiunea ``[core]``:
+
+	sshCommand = ssh.exe
+
+Daca tot nu merge, incercati sa dati comanda ``git fetch --all`` in folderul proiectului. Daca va da erori de cheie,
+
+adaugati in variabilele de sistem (per user) ``GIT_SSH=C:\Windows\System32\OpenSSH\ssh.exe``
+
