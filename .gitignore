@@ -348,3 +348,15 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+/clean.bat
+/doc
+/Images
+/OpenCV
+/common.cpp
+/common.h
+/OpenCVApplication.sln
+/OpenCVApplication.vcxproj
+/stdafx.cpp
+/stdafx.h
+/targetver.h
+/Videos
