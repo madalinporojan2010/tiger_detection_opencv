@@ -74,14 +74,11 @@ void testNegativeImage()
 	char fname[MAX_PATH];
 	while(openFileDlg(fname))
 	{
-		double t = (double)getTickCount(); // Get the current time [s]
-		
 		Mat_<uchar> src = imread(fname,CV_LOAD_IMAGE_GRAYSCALE);
 		int height = src.rows;
 		int width = src.cols;
 		Mat_<uchar> dst = Mat_<uchar>(height,width);
 		// Asa se acceseaaza pixelii individuali pt. o imagine cu 8 biti/pixel
-		// Varianta ineficienta (lenta)
 		for (int i=0; i<height; i++)
 		{
 			for (int j=0; j<width; j++)
@@ -91,12 +88,6 @@ void testNegativeImage()
 				dst(i,j) = neg;
 			}
 		}
-
-		// Get the current time again and compute the time difference [s]
-		t = ((double)getTickCount() - t) / getTickFrequency();
-		// Print (in the console window) the processing time in [ms] 
-		printf("Time = %.3f [ms]\n", t * 1000);
-
 		imshow("input image",src);
 		imshow("negative image",dst);
 		waitKey();
