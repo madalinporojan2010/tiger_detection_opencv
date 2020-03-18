@@ -7,6 +7,7 @@ Pentru a lucra:
 1) Cititi tutorialul de git si ssh: http://users.utcluj.ro/~visoft/tutoriale/
 2) Faceti-va cont pe github daca nu aveti
 3) Va setati ssh-ul sa puteti accesa github-ul
+
 [4) Va puneti pe calculator git (nu cred ca trebuie GitExtensions sau kdiff3 deocamdata)] -> Experimental, poate nu trebuie git.
 5) Va clonati proiectul specificat de profesor
 6) In folderul proiectului va dezarhivati fisierele din aceasta arhiva: [TBD]
