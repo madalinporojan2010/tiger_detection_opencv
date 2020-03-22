@@ -84,7 +84,7 @@ void testNegativeImage()
 			for (int j=0; j<width; j++)
 			{
 				uchar val = src(i,j);
-				uchar neg = MAX_PATH-val;
+				uchar neg = 256-val;
 				dst(i,j) = neg;
 			}
 		}
