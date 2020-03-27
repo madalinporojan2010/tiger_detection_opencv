@@ -89,10 +89,14 @@ void testNegativeImage()
 				dst(i,j) = neg;
 			}
 		}
-		imshow("input image",src);
-		imshow("negative image",dst);
+		imshow("Input image",src);
+		imshow("Negative image",dst);
 		waitKey();
 	}
+}
+
+void new_function() {
+	printf("Bau!");
 }
 
 int main()
