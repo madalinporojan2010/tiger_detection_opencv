@@ -96,7 +96,7 @@ void testNegativeImage()
 }
 
 void new_function() {
-	printf("Bau!");
+	printf("Bau! Bau! Ca trebuie!");
 }
 
 int main()
