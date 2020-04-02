@@ -31,3 +31,7 @@ Intrati in fisierul ``.gitconfig`` din folderul home (C:\users\xxx) si adaugati 
 
 Daca tot nu merge, deschideti o consola si incercati sa dati comanda ``git fetch --all`` in folderul proiectului. Daca va da erori de cheie, adaugati in variabilele de sistem (per user) ``GIT_SSH=C:\Windows\System32\OpenSSH\ssh.exe``
 
+
+Spre deosebire de tutorialul de git, vom lucra direct in master, fara sa mai facem branch-uri. Deasemenea, cautati pe google
+despre *rebase*. NU il recomand a fi folosit, decat cu atentie.
+
