@@ -7,14 +7,14 @@ Pentru a lucra:
 1) Cititi tutorialul de git si ssh: http://users.utcluj.ro/~visoft/tutoriale/
 2) Faceti-va cont pe github daca nu aveti
 3) Va setati ssh-ul sa puteti accesa github-ul
-4) Va puneti pe calculator git-scm [Experimentam, poate nu trebuie git]
+4) Va puneti pe calculator git-scm
 5) Va clonati proiectul specificat de profesor:
   - Deschideti o consola ``Git CMD``
   - Navigati unde vreti sa salvati proiectul
   - Rulati ``git clone URL`` unde ``URL`` este adresa repository-ului accesat prin SSH.
 6) In folderul proiectului va dezarhivati fisierele din aceasta arhiva: [primiti link separat pe grup]
-7) Deschideti Visual Studio, navigati la folderul proiectului, si deschideti. Upgradati daca vreti.
-8) Compilati
+7) Deschideti Visual Studio, navigati la folderul proiectului, si deschideti proiectul. Upgradati daca vreti.
+8) Compilati.
 9) Urmariti tutorialul video despre cum sa folositi git-ul din Visual Studio.
 
 
