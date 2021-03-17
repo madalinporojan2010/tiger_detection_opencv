@@ -73,7 +73,7 @@ int main()
 		system("cls");
 		destroyAllWindows();
 		printf("Menu:\n");
-		printf(" 1 - Open image\n");
+		printf(" 1 - Deschidere imagine\n");
 		printf(" 2 - Open BMP images from folder\n");
 		printf(" 3 - Color to Gray\n");
 		printf(" 0 - Exit\n\n");
