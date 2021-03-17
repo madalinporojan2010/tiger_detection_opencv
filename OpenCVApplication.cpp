@@ -58,7 +58,7 @@ void testColor2Gray()
 			}
 		}
 		
-		imshow("input image",src);
+		imshow("original image",src);
 		imshow("gray image",dst);
 		waitKey();
 	}
