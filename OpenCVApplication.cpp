@@ -12,7 +12,7 @@ void testOpenImage()
 	{
 		Mat src;
 		src = imread(fname);
-		imshow("image",src);
+		imshow("opened image",src);
 		waitKey();
 	}
 }
