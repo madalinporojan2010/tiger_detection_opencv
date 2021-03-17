@@ -34,71 +34,36 @@ void testOpenImagesFld()
 	}
 }
 
-void testImageOpenAndSave()
-{
-	Mat src, dst;
-
-	src = imread("Images/Lena_24bits.bmp", CV_LOAD_IMAGE_COLOR);	// Read the image
-
-	if (!src.data)	// Check for invalid input
-	{
-		printf("Could not open or find the image\n");
-		return;
-	}
-
-	// Get the image resolution
-	Size src_size = Size(src.cols, src.rows);
-
-	// Display window
-	const char* WIN_SRC = "Src"; //window for the source image
-	namedWindow(WIN_SRC, CV_WINDOW_AUTOSIZE);
-	cvMoveWindow(WIN_SRC, 0, 0);
-
-	const char* WIN_DST = "Dst"; //window for the destination (processed) image
-	namedWindow(WIN_DST, CV_WINDOW_AUTOSIZE);
-	cvMoveWindow(WIN_DST, src_size.width + 10, 0);
-
-	cvtColor(src, dst, CV_BGR2GRAY); //converts the source image to a grayscale one
-
-	imwrite("Images/Lena_24bits_gray.bmp", dst); //writes the destination to file
-
-	imshow(WIN_SRC, src);
-	imshow(WIN_DST, dst);
-
-	printf("Press any key to continue ...\n");
-	waitKey(0);
-}
-
-void testNegativeImage()
+void testColor2Gray()
 {
 	char fname[MAX_PATH];
-	int MAX_GREY_VALUE = 256;
 	while(openFileDlg(fname))
 	{
-		Mat_<uchar> src = imread(fname,CV_LOAD_IMAGE_GRAYSCALE);
+		Mat_<Vec3b> src = imread(fname, IMREAD_COLOR);
+
 		int height = src.rows;
 		int width = src.cols;
-		Mat_<uchar> dst = Mat_<uchar>(height,width);
-		// Asa se acceseaaza pixelii individuali pt. o imagine cu 8 biti/pixel
+
+		Mat_<uchar> dst(height, width);
+
 		for (int i=0; i<height; i++)
 		{
 			for (int j=0; j<width; j++)
 			{
-				uchar val = src(i,j);
-				uchar neg = MAX_GREY_VALUE - val;
-				dst(i,j) = neg;
+				Vec3b v3 = src(i,j);
+				uchar b = v3[0];
+				uchar g = v3[1];
+				uchar r = v3[2];
+				dst(i,j) = (r+g+b)/3;
 			}
 		}
-		imshow("Input image",src);
-		imshow("Negative image",dst);
+		
+		imshow("input image",src);
+		imshow("gray image",dst);
 		waitKey();
 	}
 }
 
-void new_function() {
-	printf("Bau Bau!");
-	printf("2 10");
-}
 
 int main()
 {
@@ -110,7 +75,7 @@ int main()
 		printf("Menu:\n");
 		printf(" 1 - Open image\n");
 		printf(" 2 - Open BMP images from folder\n");
-		printf(" 3 - Negative image\n");
+		printf(" 3 - Color to Gray\n");
 		printf(" 0 - Exit\n\n");
 		printf("Option: ");
 		scanf("%d",&op);
@@ -123,9 +88,8 @@ int main()
 				testOpenImagesFld();
 				break;
 			case 3:
-				testNegativeImage();
+				testColor2Gray();
 				break;
-
 		}
 	}
 	while (op!=0);

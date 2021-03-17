@@ -17,11 +17,11 @@ Pentru a lucra:
 8) Compilati.
 9) Urmariti tutorialul video despre cum sa folositi git-ul din Visual Studio.
 
+Pentru a interactiona din Visual Studio cu Git-ul, puteti deschide o fereastra asemanatoare cu "Solution Explorer":
 
-Modificari in Visual studio:
+View -> Git Changes  pentru a vedea ce fisiere sunt modificate si/sau trimite modificarile la server
+View -> Git Repository pentru a avea o privire de ansamblu asupra a ceea ce se intampla
 
-Langa Solution Explorer exista un Team explorer. Mergeti pe iconita de Home si alegeti Settings.
-Mergeti pana la Diff & Merge tool si alegeti Visual Studio.
 
 Daca nu merge sa interactionati cu repository-ul remote:
 
