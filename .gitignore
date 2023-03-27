@@ -360,3 +360,6 @@ MigrationBackup/
 /stdafx.h
 /targetver.h
 /Videos
+
+# Project data set
+/dataset
