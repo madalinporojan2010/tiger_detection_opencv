@@ -32,7 +32,7 @@ std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorith
 
         // computing new centroids
         std::vector<int> nPoints;
-        std::vector<double> sumX, sumY; // is fine?
+        std::vector<double> sumX, sumY;
 
         for (int j = 0; j < Kclusters; ++j) {
             nPoints.push_back(0);
