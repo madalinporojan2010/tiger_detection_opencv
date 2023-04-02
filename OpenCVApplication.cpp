@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "common.h"
+#include "algorithms.h"
 
 
 void testOpenImage()
@@ -64,9 +65,70 @@ void testColor2Gray()
 	}
 }
 
+void showClusters(int iterations, int Kclusters) {
+	char fname[MAX_PATH];
+	while (openFileDlg(fname))
+	{
+		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
+
+		int height = src.rows;
+		int width = src.cols;
+		Mat_<Vec3b> dst(height, width);
+		dst.setTo(cv::Scalar(255, 255, 255));
+
+
+		std::vector<Algorithms::Point> points;
+
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++) {
+				if (!Algorithms::compareColors(Vec3b(src(i, j), 0, 0), Vec3b(255, 0, 0))) {
+					points.push_back(Algorithms::Point((double)j, (double)i));
+				}
+			}
+		}
+
+		std::vector<Algorithms::Point> centroids;
+		centroids = Algorithms::kMeansClustering(&points, iterations, Kclusters);
+
+		int markSize = 20;
+		int markThickness = 2;
+		cv::Scalar markColor = cv::Scalar(0, 0, 0);
+
+		std::vector<int> clusterIds;
+		std::transform(points.begin(), points.end(), std::back_inserter(clusterIds), [](Algorithms::Point x) {
+			return x.cluster;
+		});
+
+		int maxClusterId = *std::max_element(clusterIds.begin(), clusterIds.end());
+
+		std::vector<Vec3b> randomColors = Algorithms::getRandomColors(maxClusterId + 1);
+
+		for (auto const &point : points) {
+			dst((int)point.y, (int)point.x) = randomColors[point.cluster];
+		}
+
+		for (auto const& centroid : centroids) {
+			// mark the centroids with a plus symbol
+			cv::line(dst, cv::Point(centroid.x - markSize, centroid.y), cv::Point(centroid.x + markSize, centroid.y), markColor, markThickness);
+			cv::line(dst, cv::Point(centroid.x, centroid.y - markSize), cv::Point(centroid.x, centroid.y + markSize), markColor, markThickness);
+		}
+
+		imshow("original image (grayscale)", src);
+		imshow("clustered image", dst);
+		waitKey();
+	}
+}
+
 
 int main()
 {
+
+	// 4 - K-means clustering example
+	int iterations = 0;
+	int Kclusters = 0;
+
+	//----------------------------------------------------------------------
+
 	int op;
 	do
 	{
@@ -76,9 +138,10 @@ int main()
 		printf(" 1 - Basic image opening...\n");
 		printf(" 2 - Open BMP images from folder\n");
 		printf(" 3 - Color to Gray\n");
+		printf(" 4 - K-means clustering example\n");
 		printf(" 0 - Exit\n\n");
 		printf("Option: ");
-		scanf("%d",&op);
+		scanf("%d", &op);
 		switch (op)
 		{
 			case 1:
@@ -89,6 +152,14 @@ int main()
 				break;
 			case 3:
 				testColor2Gray();
+				break;
+			case 4:
+				std::cout << "Iterations:\n";
+				std::cin >> iterations;
+				std::cout << "Number of clusters:\n";
+				std::cin >> Kclusters;
+
+				showClusters(iterations, Kclusters);
 				break;
 		}
 	}
