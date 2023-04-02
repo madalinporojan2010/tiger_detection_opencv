@@ -34,6 +34,7 @@ namespace Algorithms {
 
     // Algorithms
     std::vector<Algorithms::Point> kMeansClustering(std::vector<Algorithms::Point>* points, int iterations, int Kclusters);
+    std::vector<int> binnedHistogram(Mat_<uchar> src, int numberOfBins);
 };
 
 #endif

@@ -59,6 +59,28 @@ std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorith
     return centroids;
 }
 
+std::vector<int> Algorithms::binnedHistogram(Mat_<uchar> src, int numberOfBins) {
+    int height = src.rows;
+    int width = src.cols;
+
+    std::vector<int> hist(numberOfBins);
+    std::fill(hist.begin(), hist.end(), 0);
+
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            if (src(i, j) / (256 / numberOfBins) > numberOfBins - 1) {
+                hist[numberOfBins - 1]++;
+            }
+            else {
+                hist[src(i, j) / (256 / numberOfBins)]++;
+            }
+        }
+    }
+    return hist;
+}
+
 bool Algorithms::compareColors(Vec3b colorA, Vec3b colorB) {
     return colorA[0] == colorB[0] && colorA[1] == colorB[1] && colorA[2] == colorB[2];
 }

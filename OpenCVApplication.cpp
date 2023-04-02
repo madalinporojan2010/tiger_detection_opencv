@@ -65,6 +65,28 @@ void testColor2Gray()
 	}
 }
 
+void showHistogram(const std::string& name, std::vector<int> hist, const int  hist_cols, const int hist_height) {
+	Mat imgHist(hist_height, hist_cols, CV_8UC3, CV_RGB(255, 255, 255)); // constructs a white image
+
+	//computes histogram maximum
+	int max_hist = 0;
+	for (int i = 0; i < hist_cols; i++)
+		if (hist[i] > max_hist)
+			max_hist = hist[i];
+	double scale = 1.0;
+	scale = (double)hist_height / max_hist;
+	int baseline = hist_height - 1;
+
+	for (int x = 0; x < hist_cols; x++) {
+		Point p1 = Point(x, baseline);
+		Point p2 = Point(x, baseline - cvRound(hist[x] * scale));
+		line(imgHist, p1, p2, CV_RGB(255, 0, 255)); // histogram bins colored in magenta
+	}
+
+	imshow(name, imgHist);
+}
+
+
 void showClusters(int iterations, int Kclusters) {
 	char fname[MAX_PATH];
 	while (openFileDlg(fname))
@@ -119,6 +141,27 @@ void showClusters(int iterations, int Kclusters) {
 	}
 }
 
+void showBinnedHistogram(int numberOfBins) {
+	char fname[MAX_PATH];
+	while (openFileDlg(fname)) {
+		double t = (double)getTickCount(); // Get the current time [s]
+
+		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
+
+		std::vector<int> hist = Algorithms::binnedHistogram(src, numberOfBins);
+
+		std::vector<int> showedHist;
+
+		for (int h : hist) {
+			for (int i = 0; i < 256 / hist.size(); i++) {
+				showedHist.push_back(h);
+			}
+		}
+
+		showHistogram("Binned histogram", showedHist, showedHist.size(), 100);
+		waitKey();
+	}
+}
 
 int main()
 {
@@ -126,6 +169,9 @@ int main()
 	// 4 - K-means clustering example
 	int iterations = 0;
 	int Kclusters = 0;
+
+	// 5- Binned histogram
+	int bins = 1;
 
 	//----------------------------------------------------------------------
 
@@ -139,6 +185,7 @@ int main()
 		printf(" 2 - Open BMP images from folder\n");
 		printf(" 3 - Color to Gray\n");
 		printf(" 4 - K-means clustering example\n");
+		printf(" 5 - Binned histogram\n");
 		printf(" 0 - Exit\n\n");
 		printf("Option: ");
 		scanf("%d", &op);
@@ -160,6 +207,12 @@ int main()
 				std::cin >> Kclusters;
 
 				showClusters(iterations, Kclusters);
+				break;
+			case 5:
+				std::cout << "Number of bins:\n";
+				std::cin >> bins;
+
+				showBinnedHistogram(bins);
 				break;
 		}
 	}
