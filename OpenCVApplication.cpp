@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "common.h"
 #include "algorithms.h"
+#include "haralick_feat.h"
 
 
 void testOpenImage()
@@ -163,6 +164,26 @@ void showBinnedHistogram(int numberOfBins) {
 	}
 }
 
+void showImageFeatures() {
+
+	char fname[MAX_PATH];
+	while (openFileDlg(fname)) {
+		double t = (double)getTickCount(); // Get the current time [s]
+
+		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
+
+
+		std::vector<int> deltax({ 1 });
+		std::vector<int> deltay({ 0 });
+
+		HaralickExtractor extract; 
+		extract.getFeaturesFromImage(src, deltax, deltay, true);
+
+		waitKey();
+	}
+}
+
+
 int main()
 {
 
@@ -186,6 +207,7 @@ int main()
 		printf(" 3 - Color to Gray\n");
 		printf(" 4 - K-means clustering example\n");
 		printf(" 5 - Binned histogram\n");
+		printf(" 6 - Show image features\n");
 		printf(" 0 - Exit\n\n");
 		printf("Option: ");
 		scanf("%d", &op);
@@ -213,6 +235,9 @@ int main()
 				std::cin >> bins;
 
 				showBinnedHistogram(bins);
+				break;
+			case 6:
+				showImageFeatures();
 				break;
 		}
 	}
