@@ -6,36 +6,6 @@
 #include "algorithms.h"
 #include "haralick_feat.h"
 
-
-void testOpenImage()
-{
-	char fname[MAX_PATH];
-	while(openFileDlg(fname))
-	{
-		Mat src;
-		src = imread(fname);
-		imshow("opened image",src);
-		waitKey();
-	}
-}
-
-void testOpenImagesFld()
-{
-	char folderName[MAX_PATH];
-	if (openFolderDlg(folderName)==0)
-		return;
-	char fname[MAX_PATH];
-	FileGetter fg(folderName,"bmp");
-	while(fg.getNextAbsFile(fname))
-	{
-		Mat src;
-		src = imread(fname);
-		imshow(fg.getFoundFileName(),src);
-		if (waitKey()==27) //ESC pressed
-			break;
-	}
-}
-
 void testColor2Gray()
 {
 	char fname[MAX_PATH];
@@ -202,27 +172,19 @@ int main()
 		system("cls");
 		destroyAllWindows();
 		printf("Menu:\n");
-		printf(" 1 - Basic image opening...\n");
-		printf(" 2 - Open BMP images from folder\n");
-		printf(" 3 - Color to Gray\n");
-		printf(" 4 - K-means clustering example\n");
-		printf(" 5 - Binned histogram\n");
-		printf(" 6 - Show image features\n");
+		printf(" 1 - Color to Gray\n");
+		printf(" 2 - K-means clustering example\n");
+		printf(" 3 - Binned histogram\n");
+		printf(" 4 - Show image features\n");
 		printf(" 0 - Exit\n\n");
 		printf("Option: ");
 		scanf("%d", &op);
 		switch (op)
 		{
 			case 1:
-				testOpenImage();
-				break;
-			case 2:
-				testOpenImagesFld();
-				break;
-			case 3:
 				testColor2Gray();
 				break;
-			case 4:
+			case 2:
 				std::cout << "Iterations:\n";
 				std::cin >> iterations;
 				std::cout << "Number of clusters:\n";
@@ -230,14 +192,16 @@ int main()
 
 				showClusters(iterations, Kclusters);
 				break;
-			case 5:
+			case 3:
 				std::cout << "Number of bins:\n";
 				std::cin >> bins;
 
 				showBinnedHistogram(bins);
 				break;
-			case 6:
+			case 4:
 				showImageFeatures();
+				break;
+			default:
 				break;
 		}
 	}
