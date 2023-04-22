@@ -111,6 +111,7 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 	while (openFileDlg(fname))
 	{
 		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
+		Mat_<Vec3b> src_color = imread(fname);
 
 		int height = src.rows;
 		int width = src.cols;
@@ -129,7 +130,7 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 		for (const auto patch : patches) {
 			for (int i = std::get<0>(patch).y; i < std::get<0>(patch).y + std::get<0>(patch).height; i++) {
 				for (int j = std::get<0>(patch).x; j < std::get<0>(patch).x + std::get<0>(patch).width; j++) {
-					Algorithms::Point point = Algorithms::Point((double)j, (double)i, src(i, j));
+					Algorithms::Point point = Algorithms::Point((double)j, (double)i, src_color(i, j));
 					point.features = std::get<2>(patch);
 
 					points.push_back(point);
@@ -169,7 +170,7 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 		cv::Scalar rectanglesColor(250, 250, 250);
 
 
-		imshow("original image (grayscale)", src);
+		imshow("original image", src_color);
 		imshow("clustered image", dst);
 		waitKey();
 	}
