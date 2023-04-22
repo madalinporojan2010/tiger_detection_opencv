@@ -361,4 +361,7 @@ MigrationBackup/
 /targetver.h
 /Videos
 
+# Project data set
 /dataset
+/app
+
