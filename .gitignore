@@ -361,10 +361,7 @@ MigrationBackup/
 /targetver.h
 /Videos
 
-<<<<<<< Updated upstream
 # Project data set
 /dataset
-=======
-/dataset
 /app
->>>>>>> Stashed changes
+
