@@ -17,13 +17,13 @@ std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorith
     for (int i = 0; i < iterations; i++) {
         // assigning points to a cluster
         for (std::vector<Algorithms::Point>::iterator centroidIt = std::begin(centroids); centroidIt != std::end(centroids); centroidIt++) {
-            int clusterId = centroidIt - begin(centroids);
+            long long int clusterId = centroidIt - begin(centroids);
 
             for (std::vector<Algorithms::Point>::iterator pointIt = points->begin(); pointIt != points->end(); pointIt++) {
                 Algorithms::Point point = *pointIt;
-                double distance = centroidIt->distance(point);
-                if (distance < point.minDistance) {
-                    point.minDistance = distance;
+                double heuristic = centroidIt->heuristic(point);
+                if (heuristic < point.minHeuristic) {
+                    point.minHeuristic = heuristic;
                     point.cluster = clusterId;
                 }
                 *pointIt = point;
@@ -41,12 +41,12 @@ std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorith
         }
 
         for (std::vector<Algorithms::Point>::iterator pointIt = points->begin(); pointIt != points->end(); pointIt++) {
-            int clusterId = pointIt->cluster;
+            long long int clusterId = pointIt->cluster;
             nPoints[clusterId] += 1;
             sumX[clusterId] += pointIt->x;
             sumY[clusterId] += pointIt->y;
 
-            pointIt->minDistance = __MAX_VALUE__;
+            pointIt->minHeuristic = __MAX_VALUE__;
         }
 
         for (std::vector<Algorithms::Point>::iterator centroidIt = std::begin(centroids); centroidIt != std::end(centroids); centroidIt++) {
@@ -54,6 +54,7 @@ std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorith
             centroidIt->x = sumX[clusterId] / nPoints[clusterId];
             centroidIt->y = sumY[clusterId] / nPoints[clusterId];
         }
+
     }
 
     return centroids;
