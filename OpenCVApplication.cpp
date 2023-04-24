@@ -198,13 +198,8 @@ void showBinnedHistogram(int numberOfBins) {
 		std::cout << "Patch width:\n";
 		std::cin >> width;
 
-		height = min(height, src.rows);
-		width = min(width, src.cols);
 
-		x = min(x, src.rows - x - 1);
-		y = min(y, src.cols - y - 1);
-
-		cv::Rect patch_rect(y, x, width, height);
+		cv::Rect patch_rect(max(y, 0), max(x, 0), min(width, src.cols - y - 1), min(height, src.rows - x - 1));
 
 		std::vector<int> hist = Algorithms::binnedHistogram(src(patch_rect), numberOfBins);
 
