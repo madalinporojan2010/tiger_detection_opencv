@@ -31,7 +31,7 @@ namespace Algorithms {
             minHeuristic(__MAX_VALUE__) {}
 
         void initFeatures() {
-            double xy_magnitude = max(sqrt(x * x + y * y), INSIGNIFICANT);
+            //double xy_magnitude = max(sqrt(x * x + y * y), INSIGNIFICANT);
             double rgb_magnitude = max(sqrt(color[2] * color[2] + color[1] * color[1] + color[0] * color[0]), INSIGNIFICANT);
             //// x
             //features.push_back((double)x / xy_magnitude);

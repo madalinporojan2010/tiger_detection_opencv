@@ -77,11 +77,14 @@ std::vector<double> getPatchFeatures(cv::Mat pointPatch) {
 	// Inverse Difference Moment:
 	selectedFeatures.push_back(allFeatures[2]);
 
+	// Correlation:
+	//selectedFeatures.push_back(allFeatures[2] / );
+
 	// Info Measure of Correlation 2:
 	selectedFeatures.push_back(allFeatures[5]);
 
 	// Contrast:
-	selectedFeatures.push_back((double)allFeatures[6] / 255);
+	selectedFeatures.push_back(allFeatures[6] / 255);
 
 	return selectedFeatures;
 }
@@ -130,7 +133,7 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 		for (const auto patch : patches) {
 			for (int i = std::get<0>(patch).y; i < std::get<0>(patch).y + std::get<0>(patch).height; i++) {
 				for (int j = std::get<0>(patch).x; j < std::get<0>(patch).x + std::get<0>(patch).width; j++) {
-					Algorithms::Point point = Algorithms::Point((double)j, (double)i, src_color(i, j));
+					Algorithms::Point point = Algorithms::Point((double)j, (double)i, src(i, j));
 					point.features = std::get<2>(patch);
 
 					points.push_back(point);
@@ -179,11 +182,31 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 void showBinnedHistogram(int numberOfBins) {
 	char fname[MAX_PATH];
 	while (openFileDlg(fname)) {
-		double t = (double)getTickCount(); // Get the current time [s]
-
 		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
 
-		std::vector<int> hist = Algorithms::binnedHistogram(src, numberOfBins);
+		int x = 0, y = 0, height = 8, width = 8;
+
+		std::cout << "Image height: " << src.rows << std::endl;
+		std::cout << "Image width: " << src.cols << std::endl;
+
+		std::cout << "Patch x:\n";
+		std::cin >> x;
+		std::cout << "Patch y:\n";
+		std::cin >> y;
+		std::cout << "Patch height:\n";
+		std::cin >> height;
+		std::cout << "Patch width:\n";
+		std::cin >> width;
+
+		height = min(height, src.rows);
+		width = min(width, src.cols);
+
+		x = min(x, src.rows - x - 1);
+		y = min(y, src.cols - y - 1);
+
+		cv::Rect patch_rect(y, x, width, height);
+
+		std::vector<int> hist = Algorithms::binnedHistogram(src(patch_rect), numberOfBins);
 
 		std::vector<int> showedHist;
 
@@ -193,7 +216,9 @@ void showBinnedHistogram(int numberOfBins) {
 			}
 		}
 
-		showHistogram("Binned histogram", showedHist, showedHist.size(), 100);
+		imshow("Original Image", src);
+		imshow("Image Patch", src(patch_rect));
+		showHistogram("Binned Histogram for given patch", showedHist, showedHist.size(), 100);
 		waitKey();
 	}
 }
