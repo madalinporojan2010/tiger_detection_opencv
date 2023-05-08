@@ -1,39 +1,47 @@
 #ifndef ALGORITHMS_H
 #define ALGORITHMS_H
 
-#define __MAX_VALUE__ 9999999999.9
+#define __MAX_VALUE__ 9223372036854775807
+#define INSIGNIFICANT 0.00000000001
 
 
 namespace Algorithms {
     struct Point {
         double x, y;     // coordinates
-        int cluster;     // no default cluster
-        double minDistance;  // default infinite dist to nearest cluster
+        long long int cluster;     // no default cluster
+        double minHeuristic;  // default infinite dist to nearest cluster
+        std::vector<double> features;
+        cv::Rect patchRect;
 
         Point() :
             x(0.0),
             y(0.0),
             cluster(-1),
-            minDistance(__MAX_VALUE__) {}
+            minHeuristic(__MAX_VALUE__) {}
 
-        Point(double x, double y) :
+        Point(double x, double y, cv::Rect rect) :
             x(x),
             y(y),
             cluster(-1),
-            minDistance(__MAX_VALUE__) {}
+            patchRect(rect),
+            minHeuristic(__MAX_VALUE__) {}
 
-        double distance(Point p) {
-            return (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
+        double heuristic(Point other, double(*heuristicFunc)(Point p, Point other)) {
+            return heuristicFunc(*this, other);
         }
     };
 
+
+    double euclidianHeuristic(Point p, Point other);
+
+    double cosineSimilarityHeuristic(Point p, Point other);
 
     // Utility functions
     bool compareColors(Vec3b colorA, Vec3b colorB);
     std::vector<Vec3b> getRandomColors(int size);
 
     // Algorithms
-    std::vector<Algorithms::Point> kMeansClustering(std::vector<Algorithms::Point>* points, int iterations, int Kclusters);
+    std::vector<Algorithms::Point> kMeansClustering(std::vector<Algorithms::Point>* points, int iterations, int Kclusters, double(*heuristicFunc)(Algorithms::Point p, Algorithms::Point other));
     std::vector<int> binnedHistogram(Mat_<uchar> src, int numberOfBins);
 };
 

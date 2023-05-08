@@ -6,7 +6,7 @@
 std::default_random_engine gen;
 std::uniform_int_distribution<int> d(0, 255);
 
-std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorithms::Point> *points, int iterations, int Kclusters) {
+std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorithms::Point> *points, int iterations, int Kclusters, double(*heuristicFunc)(Algorithms::Point p, Algorithms::Point other)) {
     // initializing the clusters
     std::vector<Algorithms::Point> centroids;
     srand(time(0));
@@ -17,13 +17,13 @@ std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorith
     for (int i = 0; i < iterations; i++) {
         // assigning points to a cluster
         for (std::vector<Algorithms::Point>::iterator centroidIt = std::begin(centroids); centroidIt != std::end(centroids); centroidIt++) {
-            int clusterId = centroidIt - begin(centroids);
+            long long int clusterId = centroidIt - begin(centroids);
 
             for (std::vector<Algorithms::Point>::iterator pointIt = points->begin(); pointIt != points->end(); pointIt++) {
                 Algorithms::Point point = *pointIt;
-                double distance = centroidIt->distance(point);
-                if (distance < point.minDistance) {
-                    point.minDistance = distance;
+                double heuristic = centroidIt->heuristic(point, heuristicFunc);
+                if (heuristic < point.minHeuristic) {
+                    point.minHeuristic = heuristic;
                     point.cluster = clusterId;
                 }
                 *pointIt = point;
@@ -41,12 +41,12 @@ std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorith
         }
 
         for (std::vector<Algorithms::Point>::iterator pointIt = points->begin(); pointIt != points->end(); pointIt++) {
-            int clusterId = pointIt->cluster;
+            long long int clusterId = pointIt->cluster;
             nPoints[clusterId] += 1;
             sumX[clusterId] += pointIt->x;
             sumY[clusterId] += pointIt->y;
 
-            pointIt->minDistance = __MAX_VALUE__;
+            pointIt->minHeuristic = __MAX_VALUE__;
         }
 
         for (std::vector<Algorithms::Point>::iterator centroidIt = std::begin(centroids); centroidIt != std::end(centroids); centroidIt++) {
@@ -54,6 +54,7 @@ std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorith
             centroidIt->x = sumX[clusterId] / nPoints[clusterId];
             centroidIt->y = sumY[clusterId] / nPoints[clusterId];
         }
+
     }
 
     return centroids;
@@ -96,4 +97,34 @@ std::vector<Vec3b> Algorithms::getRandomColors(int size) {
     }
 
     return colors;
+}
+
+double Algorithms::euclidianHeuristic(Point p, Point other) {
+    double featuresCoefficient = 0.0;
+    for (int i = 0; i < p.features.size(); i++) {
+        double feature = p.features[i];
+        double featureOther = other.features[i];
+
+        if (isnan(feature)) {
+            feature = INSIGNIFICANT;
+        }
+
+        if (isnan(featureOther)) {
+            featureOther = INSIGNIFICANT;
+        }
+
+        featuresCoefficient += (feature - featureOther) * (feature - featureOther);
+    }
+    // min or max
+    return featuresCoefficient;
+}
+
+double Algorithms::cosineSimilarityHeuristic(Point p, Point other) {
+    double s1 = 0.0, s2 = 0.0, s3 = 0.0;
+    for (int i = 0; i < p.features.size(); i++) {
+        s1 += p.features.at(i) * other.features.at(i);
+        s2 += p.features.at(i) * p.features.at(i);
+        s3 += other.features.at(i) * other.features.at(i);
+    }
+    return 1-(s1 / (sqrt(s2) * sqrt(s3)));
 }

@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "common.h"
 #include "algorithms.h"
-#include "haralick_feat.h"
+#include "custom_glcm.h"
 
 void testColor2Gray()
 {
@@ -58,30 +58,90 @@ void showHistogram(const std::string& name, std::vector<int> hist, const int  hi
 }
 
 
-void showClusters(int iterations, int Kclusters) {
+std::vector<double> getPatchFeatures(cv::Mat pointPatch) {
+	std::vector<double> allFeatures = custom_glcm::getFeatures(pointPatch);
+
+	return allFeatures;
+}
+
+
+std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> createPatches(Mat src, Mat src_hue, int patchSize) {
+	int height = src.rows;
+	int width = src.cols;
+
+	std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches;
+
+	cv::Size patch_size(patchSize, patchSize); // Specify the patch size
+
+	for (int i = 0; i < src.rows; i += patch_size.height) {
+		for (int j = 0; j < src.cols; j += patch_size.width) {
+			cv::Rect patch_rect(j, i, min(patch_size.width, width - j - 1), min(patch_size.height, height - i - 1));
+			cv::Mat patch = src(patch_rect);
+
+			std::vector<double> features = getPatchFeatures(patch);
+			std::vector<int> histoPatch = Algorithms::binnedHistogram(src_hue(patch_rect), patchSize);
+			std::vector<int> histoPatchNorm;
+
+			for (int i = 0; i < histoPatch.size(); i++) {
+				histoPatchNorm.push_back(histoPatch.at(i) / (patchSize * patchSize));
+			}
+
+			features.insert(features.end(), histoPatch.begin(), histoPatch.end());
+
+			patches.push_back(std::make_tuple(patch_rect, patch, features));
+		}
+	}
+	return patches;
+}
+
+void showClusters(int iterations, int Kclusters, int patchSize) {
+
 	char fname[MAX_PATH];
 	while (openFileDlg(fname))
 	{
 		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
+		Mat_<Vec3b> src_color = imread(fname);
+		Mat_<Vec3b> src_hsv = imread(fname);
+		std::vector<Mat> hsv_planes;
+		Mat_<uchar> src_hue;
+
+		cv::cvtColor(src_color, src_hsv, COLOR_BGR2HSV);
+		split(src_hsv, hsv_planes);
+		src_hue = hsv_planes[0]; // hue channel
+
 
 		int height = src.rows;
 		int width = src.cols;
+		if (patchSize > max(height, width) || patchSize <= 0) {
+			patchSize = max(height, width);
+		}
+
 		Mat_<Vec3b> dst(height, width);
 		dst.setTo(cv::Scalar(255, 255, 255));
 
-
 		std::vector<Algorithms::Point> points;
 
-		for (int i = 0; i < height; i++) {
-			for (int j = 0; j < width; j++) {
-				if (!Algorithms::compareColors(Vec3b(src(i, j), 0, 0), Vec3b(255, 0, 0))) {
-					points.push_back(Algorithms::Point((double)j, (double)i));
-				}
-			}
+
+		std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches = createPatches(src, src_hue, patchSize);
+
+		for (const auto patch : patches) {
+			double centerX = (double)std::get<0>(patch).width / 2.0;
+			double centerY = (double)std::get<0>(patch).height / 2.0;
+
+			Algorithms::Point point = Algorithms::Point(centerX, centerY, std::get<0>(patch));
+			point.features = std::get<2>(patch);
+
+			points.push_back(point);
+				
 		}
 
+		std::cout << "25% - Split the source image in " << patches.size() << " patches and " << points.size() << " points" << std::endl;
+
 		std::vector<Algorithms::Point> centroids;
-		centroids = Algorithms::kMeansClustering(&points, iterations, Kclusters);
+		//centroids = Algorithms::kMeansClustering(&points, iterations, Kclusters, Algorithms::euclidianHeuristic);
+		centroids = Algorithms::kMeansClustering(&points, iterations, Kclusters, Algorithms::cosineSimilarityHeuristic);
+
+		std::cout << "75% - Clustered the image in " << Kclusters << " in " << iterations << " iterations" << std::endl;
 
 		int markSize = 20;
 		int markThickness = 2;
@@ -97,17 +157,22 @@ void showClusters(int iterations, int Kclusters) {
 		std::vector<Vec3b> randomColors = Algorithms::getRandomColors(maxClusterId + 1);
 
 		for (auto const &point : points) {
-			dst((int)point.y, (int)point.x) = randomColors[point.cluster];
+			dst(point.patchRect).setTo(cv::Scalar(randomColors[point.cluster]));
 		}
 
-		for (auto const& centroid : centroids) {
-			// mark the centroids with a plus symbol
-			cv::line(dst, cv::Point(centroid.x - markSize, centroid.y), cv::Point(centroid.x + markSize, centroid.y), markColor, markThickness);
-			cv::line(dst, cv::Point(centroid.x, centroid.y - markSize), cv::Point(centroid.x, centroid.y + markSize), markColor, markThickness);
-		}
+		std::cout << "90% - Colored the clusters" << std::endl;
 
-		imshow("original image (grayscale)", src);
+		//for (auto const& centroid : centroids) {
+		//	// mark the centroids with a plus symbol
+		//	cv::line(dst, cv::Point(centroid.x - markSize, centroid.y), cv::Point(centroid.x + markSize, centroid.y), markColor, markThickness);
+		//	cv::line(dst, cv::Point(centroid.x, centroid.y - markSize), cv::Point(centroid.x, centroid.y + markSize), markColor, markThickness);
+		//}
+
+
+		imshow("original image", src_color);
 		imshow("clustered image", dst);
+
+		std::cout << "100% - Done" << std::endl;
 		waitKey();
 	}
 }
@@ -115,11 +180,26 @@ void showClusters(int iterations, int Kclusters) {
 void showBinnedHistogram(int numberOfBins) {
 	char fname[MAX_PATH];
 	while (openFileDlg(fname)) {
-		double t = (double)getTickCount(); // Get the current time [s]
-
 		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
 
-		std::vector<int> hist = Algorithms::binnedHistogram(src, numberOfBins);
+		int x = 0, y = 0, height = 8, width = 8;
+
+		std::cout << "Image height: " << src.rows << std::endl;
+		std::cout << "Image width: " << src.cols << std::endl;
+
+		std::cout << "Patch x:\n";
+		std::cin >> x;
+		std::cout << "Patch y:\n";
+		std::cin >> y;
+		std::cout << "Patch height:\n";
+		std::cin >> height;
+		std::cout << "Patch width:\n";
+		std::cin >> width;
+
+
+		cv::Rect patch_rect(max(y, 0), max(x, 0), min(width, src.cols - y - 1), min(height, src.rows - x - 1));
+
+		std::vector<int> hist = Algorithms::binnedHistogram(src(patch_rect), numberOfBins);
 
 		std::vector<int> showedHist;
 
@@ -129,7 +209,9 @@ void showBinnedHistogram(int numberOfBins) {
 			}
 		}
 
-		showHistogram("Binned histogram", showedHist, showedHist.size(), 100);
+		imshow("Original Image", src);
+		imshow("Image Patch", src(patch_rect));
+		showHistogram("Binned Histogram for given patch", showedHist, showedHist.size(), 100);
 		waitKey();
 	}
 }
@@ -143,12 +225,10 @@ void showImageFeatures() {
 		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
 
 
-		std::vector<int> deltax({ 1 });
-		std::vector<int> deltay({ 0 });
+		for (const auto feature : custom_glcm::getFeatures(src)) {
 
-		HaralickExtractor extract; 
-		extract.getFeaturesFromImage(src, deltax, deltay, true);
-
+			std::cout << feature<<std::endl;
+		}
 		waitKey();
 	}
 }
@@ -157,11 +237,12 @@ void showImageFeatures() {
 int main()
 {
 
-	// 4 - K-means clustering example
+	// 2 - K-means clustering example
 	int iterations = 0;
 	int Kclusters = 0;
+	int patchSize = 8;
 
-	// 5- Binned histogram
+	// 3 - Binned histogram
 	int bins = 1;
 
 	//----------------------------------------------------------------------
@@ -189,8 +270,10 @@ int main()
 				std::cin >> iterations;
 				std::cout << "Number of clusters:\n";
 				std::cin >> Kclusters;
+				std::cout << "Patch size:\n";
+				std::cin >> patchSize;
 
-				showClusters(iterations, Kclusters);
+				showClusters(iterations, Kclusters, patchSize);
 				break;
 			case 3:
 				std::cout << "Number of bins:\n";
