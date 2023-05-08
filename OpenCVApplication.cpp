@@ -80,6 +80,12 @@ std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> createPatches(Ma
 
 			std::vector<double> features = getPatchFeatures(patch);
 			std::vector<int> histoPatch = Algorithms::binnedHistogram(src_hue(patch_rect), patchSize);
+			std::vector<int> histoPatchNorm;
+
+			for (int i = 0; i < histoPatch.size(); i++) {
+				histoPatchNorm.push_back(histoPatch.at(i) / (patchSize * patchSize));
+			}
+
 			features.insert(features.end(), histoPatch.begin(), histoPatch.end());
 
 			patches.push_back(std::make_tuple(patch_rect, patch, features));
@@ -119,19 +125,23 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 		std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches = createPatches(src, src_hue, patchSize);
 
 		for (const auto patch : patches) {
-			for (int i = std::get<0>(patch).y; i < std::get<0>(patch).y + std::get<0>(patch).height; i++) {
-				for (int j = std::get<0>(patch).x; j < std::get<0>(patch).x + std::get<0>(patch).width; j++) {
-					Algorithms::Point point = Algorithms::Point((double)j, (double)i, src(i, j));
-					point.features = std::get<2>(patch);
+			double centerX = (double)std::get<0>(patch).width / 2.0;
+			double centerY = (double)std::get<0>(patch).height / 2.0;
 
-					points.push_back(point);
-					
-				}
-			}
+			Algorithms::Point point = Algorithms::Point(centerX, centerY, std::get<0>(patch));
+			point.features = std::get<2>(patch);
+
+			points.push_back(point);
+				
 		}
 
+		std::cout << "25% - Split the source image in " << patches.size() << " patches and " << points.size() << " points" << std::endl;
+
 		std::vector<Algorithms::Point> centroids;
-		centroids = Algorithms::kMeansClustering(&points, iterations, Kclusters);
+		//centroids = Algorithms::kMeansClustering(&points, iterations, Kclusters, Algorithms::euclidianHeuristic);
+		centroids = Algorithms::kMeansClustering(&points, iterations, Kclusters, Algorithms::cosineSimilarityHeuristic);
+
+		std::cout << "75% - Clustered the image in " << Kclusters << " in " << iterations << " iterations" << std::endl;
 
 		int markSize = 20;
 		int markThickness = 2;
@@ -147,8 +157,10 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 		std::vector<Vec3b> randomColors = Algorithms::getRandomColors(maxClusterId + 1);
 
 		for (auto const &point : points) {
-			dst((int)point.y, (int)point.x) = randomColors[point.cluster];
+			dst(point.patchRect).setTo(cv::Scalar(randomColors[point.cluster]));
 		}
+
+		std::cout << "90% - Colored the clusters" << std::endl;
 
 		//for (auto const& centroid : centroids) {
 		//	// mark the centroids with a plus symbol
@@ -159,6 +171,8 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 
 		imshow("original image", src_color);
 		imshow("clustered image", dst);
+
+		std::cout << "100% - Done" << std::endl;
 		waitKey();
 	}
 }
@@ -211,7 +225,10 @@ void showImageFeatures() {
 		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
 
 
-		custom_glcm::getFeatures(src);
+		for (const auto feature : custom_glcm::getFeatures(src)) {
+
+			std::cout << feature<<std::endl;
+		}
 		waitKey();
 	}
 }

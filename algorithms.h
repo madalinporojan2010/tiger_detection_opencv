@@ -8,54 +8,40 @@
 namespace Algorithms {
     struct Point {
         double x, y;     // coordinates
-        cv::Vec3b color;
         long long int cluster;     // no default cluster
         double minHeuristic;  // default infinite dist to nearest cluster
         std::vector<double> features;
+        cv::Rect patchRect;
 
         Point() :
             x(0.0),
             y(0.0),
-            color(cv::Vec3b::all(255)),
             cluster(-1),
             minHeuristic(__MAX_VALUE__) {}
 
-        Point(double x, double y, cv::Vec3b col) :
+        Point(double x, double y, cv::Rect rect) :
             x(x),
             y(y),
-            color(col),
             cluster(-1),
+            patchRect(rect),
             minHeuristic(__MAX_VALUE__) {}
 
-        double heuristic(Point p) {
-            double featuresCoefficient = 0.0;
-            for (int i = 0; i < features.size(); i++) {
-                double feature = features[i];
-                double featureOther = p.features[i];
-
-                if (isnan(feature)) {
-                    feature = INSIGNIFICANT;
-                }
-
-                if (isnan(featureOther)) {
-                    featureOther = INSIGNIFICANT;
-                }
-
-                featuresCoefficient += (feature - featureOther) * (feature - featureOther);
-            }
-            // min or max
-            return featuresCoefficient;
-           
+        double heuristic(Point other, double(*heuristicFunc)(Point p, Point other)) {
+            return heuristicFunc(*this, other);
         }
     };
 
+
+    double euclidianHeuristic(Point p, Point other);
+
+    double cosineSimilarityHeuristic(Point p, Point other);
 
     // Utility functions
     bool compareColors(Vec3b colorA, Vec3b colorB);
     std::vector<Vec3b> getRandomColors(int size);
 
     // Algorithms
-    std::vector<Algorithms::Point> kMeansClustering(std::vector<Algorithms::Point>* points, int iterations, int Kclusters);
+    std::vector<Algorithms::Point> kMeansClustering(std::vector<Algorithms::Point>* points, int iterations, int Kclusters, double(*heuristicFunc)(Algorithms::Point p, Algorithms::Point other));
     std::vector<int> binnedHistogram(Mat_<uchar> src, int numberOfBins);
 };
 

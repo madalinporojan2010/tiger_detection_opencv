@@ -133,7 +133,7 @@ double custom_glcm::HaralickContrast(cv::Mat cooc, std::vector<double> diff) {
     double contrast = 0.0;
     for (int i = 0; i < diff.size(); i++)
         contrast += i * i * diff[i];
-    return contrast;
+    return contrast/ diff.size()/5.0;
 }
 
 double custom_glcm::HaralickDiffEntropy(cv::Mat cooc, std::vector<double> diff) {
@@ -208,8 +208,8 @@ cv::Mat custom_glcm::MatCoocAdd(cv::Mat img, int N, std::vector<int> deltax, std
 
 std::vector<double> custom_glcm::getFeatures(cv::Mat_<uchar> img) {
     std::vector<double> features;
-    std::vector<int> deltax({ 0 });
-    std::vector<int> deltay({ 0 });
+    std::vector<int> deltax{ 0,8,16,24,32,40,48,56,64,72 };
+    std::vector<int> deltay{ 0,0,0,0,0,0,0,0,0,0 };
     cv::Mat ans = MatCoocAdd(img, 255, deltax, deltay);
 
     std::vector<double> probx = MargProbx(ans);
@@ -220,11 +220,11 @@ std::vector<double> custom_glcm::getFeatures(cv::Mat_<uchar> img) {
     features.push_back(HaralickEntropy(ans));
     // Energy
     features.push_back(HaralickEnergy(ans));
-    // Inverse Difference Moment
-    features.push_back(HaralickInverseDifference(ans));
     // Correlation
     features.push_back(HaralickCorrelation(ans, probx, proby));
     // Contrast
     features.push_back(HaralickContrast(ans, diff));
+    // Inverse difference
+    features.push_back(HaralickInverseDifference(ans));
     return features;
 }

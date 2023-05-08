@@ -6,7 +6,7 @@
 std::default_random_engine gen;
 std::uniform_int_distribution<int> d(0, 255);
 
-std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorithms::Point> *points, int iterations, int Kclusters) {
+std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorithms::Point> *points, int iterations, int Kclusters, double(*heuristicFunc)(Algorithms::Point p, Algorithms::Point other)) {
     // initializing the clusters
     std::vector<Algorithms::Point> centroids;
     srand(time(0));
@@ -21,7 +21,7 @@ std::vector<Algorithms::Point> Algorithms::kMeansClustering(std::vector<Algorith
 
             for (std::vector<Algorithms::Point>::iterator pointIt = points->begin(); pointIt != points->end(); pointIt++) {
                 Algorithms::Point point = *pointIt;
-                double heuristic = centroidIt->heuristic(point);
+                double heuristic = centroidIt->heuristic(point, heuristicFunc);
                 if (heuristic < point.minHeuristic) {
                     point.minHeuristic = heuristic;
                     point.cluster = clusterId;
@@ -97,4 +97,34 @@ std::vector<Vec3b> Algorithms::getRandomColors(int size) {
     }
 
     return colors;
+}
+
+double Algorithms::euclidianHeuristic(Point p, Point other) {
+    double featuresCoefficient = 0.0;
+    for (int i = 0; i < p.features.size(); i++) {
+        double feature = p.features[i];
+        double featureOther = other.features[i];
+
+        if (isnan(feature)) {
+            feature = INSIGNIFICANT;
+        }
+
+        if (isnan(featureOther)) {
+            featureOther = INSIGNIFICANT;
+        }
+
+        featuresCoefficient += (feature - featureOther) * (feature - featureOther);
+    }
+    // min or max
+    return featuresCoefficient;
+}
+
+double Algorithms::cosineSimilarityHeuristic(Point p, Point other) {
+    double s1 = 0.0, s2 = 0.0, s3 = 0.0;
+    for (int i = 0; i < p.features.size(); i++) {
+        s1 += p.features.at(i) * other.features.at(i);
+        s2 += p.features.at(i) * p.features.at(i);
+        s3 += other.features.at(i) * other.features.at(i);
+    }
+    return 1-(s1 / (sqrt(s2) * sqrt(s3)));
 }
