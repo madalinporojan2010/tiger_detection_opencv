@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "common.h"
 #include "algorithms.h"
-#include "haralick_feat.h"
+#include "custom_glcm.h"
 
 void testColor2Gray()
 {
@@ -59,38 +59,13 @@ void showHistogram(const std::string& name, std::vector<int> hist, const int  hi
 
 
 std::vector<double> getPatchFeatures(cv::Mat pointPatch) {
-	std::vector<int> deltax({ 1 });
-	std::vector<int> deltay({ 0 });
+	std::vector<double> allFeatures = custom_glcm::getFeatures(pointPatch);
 
-	HaralickExtractor extract;
-	std::vector<double> allFeatures = extract.getFeaturesFromImage(pointPatch, deltax, deltay, false);
-
-	std::vector<double> selectedFeatures;
-
-
-	// Energy:
-	selectedFeatures.push_back(allFeatures[0]);
-
-	// Entropy:
-	selectedFeatures.push_back(allFeatures[1]);
-
-	// Inverse Difference Moment:
-	selectedFeatures.push_back(allFeatures[2]);
-
-	// Correlation:
-	//selectedFeatures.push_back(allFeatures[2] / );
-
-	// Info Measure of Correlation 2:
-	selectedFeatures.push_back(allFeatures[5]);
-
-	// Contrast:
-	selectedFeatures.push_back(allFeatures[6] / 255);
-
-	return selectedFeatures;
+	return allFeatures;
 }
 
 
-std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> createPatches(Mat src, int patchSize) {
+std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> createPatches(Mat src, Mat src_hue, int patchSize) {
 	int height = src.rows;
 	int width = src.cols;
 
@@ -102,7 +77,12 @@ std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> createPatches(Ma
 		for (int j = 0; j < src.cols; j += patch_size.width) {
 			cv::Rect patch_rect(j, i, min(patch_size.width, width - j - 1), min(patch_size.height, height - i - 1));
 			cv::Mat patch = src(patch_rect);
-			patches.push_back(std::make_tuple(patch_rect, patch, getPatchFeatures(patch)));
+
+			std::vector<double> features = getPatchFeatures(patch);
+			std::vector<int> histoPatch = Algorithms::binnedHistogram(src_hue(patch_rect), patchSize);
+			features.insert(features.end(), histoPatch.begin(), histoPatch.end());
+
+			patches.push_back(std::make_tuple(patch_rect, patch, features));
 		}
 	}
 	return patches;
@@ -115,6 +95,14 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 	{
 		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
 		Mat_<Vec3b> src_color = imread(fname);
+		Mat_<Vec3b> src_hsv = imread(fname);
+		std::vector<Mat> hsv_planes;
+		Mat_<uchar> src_hue;
+
+		cv::cvtColor(src_color, src_hsv, COLOR_BGR2HSV);
+		split(src_hsv, hsv_planes);
+		src_hue = hsv_planes[0]; // hue channel
+
 
 		int height = src.rows;
 		int width = src.cols;
@@ -128,7 +116,7 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 		std::vector<Algorithms::Point> points;
 
 
-		std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches = createPatches(src, patchSize);
+		std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches = createPatches(src, src_hue, patchSize);
 
 		for (const auto patch : patches) {
 			for (int i = std::get<0>(patch).y; i < std::get<0>(patch).y + std::get<0>(patch).height; i++) {
@@ -162,15 +150,11 @@ void showClusters(int iterations, int Kclusters, int patchSize) {
 			dst((int)point.y, (int)point.x) = randomColors[point.cluster];
 		}
 
-		for (auto const& centroid : centroids) {
-			// mark the centroids with a plus symbol
-			cv::line(dst, cv::Point(centroid.x - markSize, centroid.y), cv::Point(centroid.x + markSize, centroid.y), markColor, markThickness);
-			cv::line(dst, cv::Point(centroid.x, centroid.y - markSize), cv::Point(centroid.x, centroid.y + markSize), markColor, markThickness);
-		}
-
-		//patches outlines
-
-		cv::Scalar rectanglesColor(250, 250, 250);
+		//for (auto const& centroid : centroids) {
+		//	// mark the centroids with a plus symbol
+		//	cv::line(dst, cv::Point(centroid.x - markSize, centroid.y), cv::Point(centroid.x + markSize, centroid.y), markColor, markThickness);
+		//	cv::line(dst, cv::Point(centroid.x, centroid.y - markSize), cv::Point(centroid.x, centroid.y + markSize), markColor, markThickness);
+		//}
 
 
 		imshow("original image", src_color);
@@ -227,12 +211,7 @@ void showImageFeatures() {
 		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
 
 
-		std::vector<int> deltax({ 1 });
-		std::vector<int> deltay({ 0 });
-
-		HaralickExtractor extract; 
-		extract.getFeaturesFromImage(src, deltax, deltay, true);
-
+		custom_glcm::getFeatures(src);
 		waitKey();
 	}
 }

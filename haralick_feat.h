@@ -1,9 +1,5 @@
-#include <opencv2/opencv.hpp>
-
-#include <iterator>
-#include <vector>
-#include <cmath>
-#include <math.h>
+#ifndef HARALICK_H
+#define HARALICK_H
 
 #define EPS 0.00000001
 
@@ -213,3 +209,4 @@ public:
         return;
     }
 };
+#endif
