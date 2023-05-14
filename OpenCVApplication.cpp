@@ -7,6 +7,12 @@
 #include "custom_glcm.h"
 #include "OpenCVApplication.h"
 #include "file_tester.h"
+#include <random>
+#include <functional>
+
+std::random_device dev;
+std::mt19937 rng(dev());
+
 
 void tiger_detection::showHistogram(const std::string& name, std::vector<int> hist, const int  hist_cols, const int hist_height) {
 	Mat imgHist(hist_height, hist_cols, CV_8UC3, CV_RGB(255, 255, 255)); // constructs a white image
@@ -192,7 +198,7 @@ cv::Mat_<Vec3b> tiger_detection::computeTigerImageClusters(const cv::String fnam
 
 /* Threaded testing.... */
 
-void thFunction(int testNumber, std::string fname, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
+void thThreadedTestImages(int testNumber, std::string fname, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
 	Mat_<Vec3b> dstImage = tiger_detection::computeTigerImageClusters(fname, iterations, Kclusters, patchSize, heuristicFunc);
 
 	if (!imwrite(std::string(OUTPUT_TEST_DIR) + std::to_string(testNumber) + fname.substr(INPUT_TEST_DIR_LEN), dstImage)) {
@@ -213,7 +219,36 @@ void tiger_detection::threadedTestImages(int testNumber, int iterations, int Kcl
 
 	std::vector<std::thread> threads;
 	for (auto const& fileName : dirsAndFiles.second) {
-		std::thread th(thFunction, testNumber, fileName, iterations, Kclusters, patchSize, heuristicFunc);
+		std::thread th(thThreadedTestImages, testNumber, fileName, iterations, Kclusters, patchSize, heuristicFunc);
+		threads.push_back(std::move(th));
+	}
+	for (auto& thr : threads) {
+		thr.join();
+	}
+}
+
+void tiger_detection::randomizedTesting(int numberOfTests) {
+	std::uniform_int_distribution<std::mt19937::result_type> distIterations(15, 60);
+	std::uniform_int_distribution<std::mt19937::result_type> distKclusters(2, 20);
+
+	std::vector<int> defaultPatchSizes{8, 16};
+	std::uniform_int_distribution<std::mt19937::result_type> distPatchSize(0, 1);
+	std::uniform_int_distribution<std::mt19937::result_type> distFunctionNumber(0, 1);
+
+	std::vector<std::thread> threads;
+	
+	for (int i = 1; i <= numberOfTests; i++) {
+		std::cout << "Starting test #" << i << "\n";
+
+		std::thread th;
+		int funcNum = distFunctionNumber(rng);
+		if (funcNum == 0) {
+			th = std::thread(tiger_detection::threadedTestImages, i, distIterations(rng), distKclusters(rng), defaultPatchSizes[distPatchSize(rng)], algorithms::euclidianHeuristic, "Euclidian Distance");
+		}
+		else {
+			th = std::thread(tiger_detection::threadedTestImages, i, distIterations(rng), distKclusters(rng), defaultPatchSizes[distPatchSize(rng)], algorithms::cosineSimilarityHeuristic, "Cosine Similarity Distance");
+		}
+
 		threads.push_back(std::move(th));
 	}
 
@@ -233,6 +268,9 @@ int main()
 	// 2 - Binned histogram
 	int bins = 1;
 
+	// 5 - Number of tests
+	int numberOfTests = 1;
+
 	//----------------------------------------------------------------------
 
 	int op;
@@ -244,7 +282,8 @@ int main()
 		printf(" 1 - K-means clustering example\n");
 		printf(" 2 - Binned histogram\n");
 		printf(" 3 - Show image features\n");
-		printf(" 4 - Test folder of tiger images (parallel testing)\n");
+		printf(" 4 - EXAMPLE: Test folder of tiger images (parallel testing)\n");
+		printf(" 5 - Test folder of tiger images (parallel testing)\n");
 		printf(" 0 - Exit\n\n");
 		printf("Option: ");
 		scanf("%d", &op);
@@ -271,6 +310,13 @@ int main()
 				break;
 			case 4:
 				tiger_detection::threadedTestImages(1, 10, 5, 8, algorithms::cosineSimilarityHeuristic, std::string("cosine similarity"));
+				break;
+			case 5:
+				std::cout << "Number of randomized tests: \n";
+				std::cin >> numberOfTests;
+
+				tiger_detection::randomizedTesting(numberOfTests);
+
 				break;
 			default:
 				break;
