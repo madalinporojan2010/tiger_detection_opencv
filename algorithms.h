@@ -1,11 +1,14 @@
 #ifndef ALGORITHMS_H
 #define ALGORITHMS_H
 
+#include <string>
+#include <vector>
+
 #define __MAX_VALUE__ 9223372036854775807
 #define INSIGNIFICANT 0.00000000001
 
 
-namespace Algorithms {
+namespace algorithms {
     struct Point {
         double x, y;     // coordinates
         long long int cluster;     // no default cluster
@@ -41,7 +44,7 @@ namespace Algorithms {
     std::vector<Vec3b> getRandomColors(int size);
 
     // Algorithms
-    std::vector<Algorithms::Point> kMeansClustering(std::vector<Algorithms::Point>* points, int iterations, int Kclusters, double(*heuristicFunc)(Algorithms::Point p, Algorithms::Point other));
+    std::vector<Point> kMeansClustering(std::vector<Point>* points, int iterations, int Kclusters, double(*heuristicFunc)(Point p, Point other));
     std::vector<int> binnedHistogram(Mat_<uchar> src, int numberOfBins);
 };
 

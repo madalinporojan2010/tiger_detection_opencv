@@ -5,38 +5,10 @@
 #include "common.h"
 #include "algorithms.h"
 #include "custom_glcm.h"
+#include "OpenCVApplication.h"
+#include "file_tester.h"
 
-void testColor2Gray()
-{
-	char fname[MAX_PATH];
-	while(openFileDlg(fname))
-	{
-		Mat_<Vec3b> src = imread(fname, IMREAD_COLOR);
-
-		int height = src.rows;
-		int width = src.cols;
-
-		Mat_<uchar> dst(height, width);
-
-		for (int i=0; i<height; i++)
-		{
-			for (int j=0; j<width; j++)
-			{
-				Vec3b v3 = src(i,j);
-				uchar b = v3[0];
-				uchar g = v3[1];
-				uchar r = v3[2];
-				dst(i,j) = (r+g+b)/3;
-			}
-		}
-		
-		imshow("original image",src);
-		imshow("gray image",dst);
-		waitKey();
-	}
-}
-
-void showHistogram(const std::string& name, std::vector<int> hist, const int  hist_cols, const int hist_height) {
+void tiger_detection::showHistogram(const std::string& name, std::vector<int> hist, const int  hist_cols, const int hist_height) {
 	Mat imgHist(hist_height, hist_cols, CV_8UC3, CV_RGB(255, 255, 255)); // constructs a white image
 
 	//computes histogram maximum
@@ -57,15 +29,7 @@ void showHistogram(const std::string& name, std::vector<int> hist, const int  hi
 	imshow(name, imgHist);
 }
 
-
-std::vector<double> getPatchFeatures(cv::Mat pointPatch) {
-	std::vector<double> allFeatures = custom_glcm::getFeatures(pointPatch);
-
-	return allFeatures;
-}
-
-
-std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> createPatches(Mat src, Mat src_hue, int patchSize) {
+std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> tiger_detection::createPatches(Mat src, Mat src_hue, int patchSize) {
 	int height = src.rows;
 	int width = src.cols;
 
@@ -78,8 +42,8 @@ std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> createPatches(Ma
 			cv::Rect patch_rect(j, i, min(patch_size.width, width - j - 1), min(patch_size.height, height - i - 1));
 			cv::Mat patch = src(patch_rect);
 
-			std::vector<double> features = getPatchFeatures(patch);
-			std::vector<int> histoPatch = Algorithms::binnedHistogram(src_hue(patch_rect), patchSize);
+			std::vector<double> features = custom_glcm::getFeatures(patch);
+			std::vector<int> histoPatch = algorithms::binnedHistogram(src_hue(patch_rect), patchSize);
 			std::vector<int> histoPatchNorm;
 
 			for (int i = 0; i < histoPatch.size(); i++) {
@@ -94,90 +58,22 @@ std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> createPatches(Ma
 	return patches;
 }
 
-void showClusters(int iterations, int Kclusters, int patchSize) {
+void tiger_detection::showClusters(int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
 
 	char fname[MAX_PATH];
 	while (openFileDlg(fname))
 	{
-		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
 		Mat_<Vec3b> src_color = imread(fname);
-		Mat_<Vec3b> src_hsv = imread(fname);
-		std::vector<Mat> hsv_planes;
-		Mat_<uchar> src_hue;
-
-		cv::cvtColor(src_color, src_hsv, COLOR_BGR2HSV);
-		split(src_hsv, hsv_planes);
-		src_hue = hsv_planes[0]; // hue channel
-
-
-		int height = src.rows;
-		int width = src.cols;
-		if (patchSize > max(height, width) || patchSize <= 0) {
-			patchSize = max(height, width);
-		}
-
-		Mat_<Vec3b> dst(height, width);
-		dst.setTo(cv::Scalar(255, 255, 255));
-
-		std::vector<Algorithms::Point> points;
-
-
-		std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches = createPatches(src, src_hue, patchSize);
-
-		for (const auto patch : patches) {
-			double centerX = (double)std::get<0>(patch).width / 2.0;
-			double centerY = (double)std::get<0>(patch).height / 2.0;
-
-			Algorithms::Point point = Algorithms::Point(centerX, centerY, std::get<0>(patch));
-			point.features = std::get<2>(patch);
-
-			points.push_back(point);
-				
-		}
-
-		std::cout << "25% - Split the source image in " << patches.size() << " patches and " << points.size() << " points" << std::endl;
-
-		std::vector<Algorithms::Point> centroids;
-		//centroids = Algorithms::kMeansClustering(&points, iterations, Kclusters, Algorithms::euclidianHeuristic);
-		centroids = Algorithms::kMeansClustering(&points, iterations, Kclusters, Algorithms::cosineSimilarityHeuristic);
-
-		std::cout << "75% - Clustered the image in " << Kclusters << " in " << iterations << " iterations" << std::endl;
-
-		int markSize = 20;
-		int markThickness = 2;
-		cv::Scalar markColor = cv::Scalar(0, 0, 0);
-
-		std::vector<int> clusterIds;
-		std::transform(points.begin(), points.end(), std::back_inserter(clusterIds), [](Algorithms::Point x) {
-			return x.cluster;
-		});
-
-		int maxClusterId = *std::max_element(clusterIds.begin(), clusterIds.end());
-
-		std::vector<Vec3b> randomColors = Algorithms::getRandomColors(maxClusterId + 1);
-
-		for (auto const &point : points) {
-			dst(point.patchRect).setTo(cv::Scalar(randomColors[point.cluster]));
-		}
-
-		std::cout << "90% - Colored the clusters" << std::endl;
-
-		//for (auto const& centroid : centroids) {
-		//	// mark the centroids with a plus symbol
-		//	cv::line(dst, cv::Point(centroid.x - markSize, centroid.y), cv::Point(centroid.x + markSize, centroid.y), markColor, markThickness);
-		//	cv::line(dst, cv::Point(centroid.x, centroid.y - markSize), cv::Point(centroid.x, centroid.y + markSize), markColor, markThickness);
-		//}
-
+		Mat_<Vec3b> dst = tiger_detection::computeTigerImageClusters(fname, iterations, Kclusters, patchSize, heuristicFunc);
 
 		imshow("original image", src_color);
 		imshow("clustered image", dst);
 
-		std::cout << "100% - Done" << std::endl;
 		waitKey();
 	}
 }
 
-void showBinnedHistogram(int numberOfBins) {
+void tiger_detection::showBinnedHistogram(int numberOfBins) {
 	char fname[MAX_PATH];
 	while (openFileDlg(fname)) {
 		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
@@ -199,7 +95,7 @@ void showBinnedHistogram(int numberOfBins) {
 
 		cv::Rect patch_rect(max(y, 0), max(x, 0), min(width, src.cols - y - 1), min(height, src.rows - x - 1));
 
-		std::vector<int> hist = Algorithms::binnedHistogram(src(patch_rect), numberOfBins);
+		std::vector<int> hist = algorithms::binnedHistogram(src(patch_rect), numberOfBins);
 
 		std::vector<int> showedHist;
 
@@ -211,12 +107,12 @@ void showBinnedHistogram(int numberOfBins) {
 
 		imshow("Original Image", src);
 		imshow("Image Patch", src(patch_rect));
-		showHistogram("Binned Histogram for given patch", showedHist, showedHist.size(), 100);
+		tiger_detection::showHistogram("Binned Histogram for given patch", showedHist, showedHist.size(), 100);
 		waitKey();
 	}
 }
 
-void showImageFeatures() {
+void tiger_detection::showImageFeatures() {
 
 	char fname[MAX_PATH];
 	while (openFileDlg(fname)) {
@@ -233,16 +129,108 @@ void showImageFeatures() {
 	}
 }
 
+cv::Mat_<Vec3b> tiger_detection::computeTigerImageClusters(const cv::String fname, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
+	
+	Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
+	Mat_<Vec3b> src_color = imread(fname);
+	Mat_<Vec3b> src_hsv = imread(fname);
+	std::vector<Mat> hsv_planes;
+	Mat_<uchar> src_hue;
+
+	cv::cvtColor(src_color, src_hsv, COLOR_BGR2HSV);
+	split(src_hsv, hsv_planes);
+	src_hue = hsv_planes[0]; // hue channel
+
+
+	int height = src.rows;
+	int width = src.cols;
+	if (patchSize > max(height, width) || patchSize <= 0) {
+		patchSize = max(height, width);
+	}
+
+	Mat_<Vec3b> dst(height, width);
+	dst.setTo(cv::Scalar(255, 255, 255));
+
+	std::vector<algorithms::Point> points;
+
+
+	std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches = tiger_detection::createPatches(src, src_hue, patchSize);
+
+	for (const auto patch : patches) {
+		double centerX = (double)std::get<0>(patch).width / 2.0;
+		double centerY = (double)std::get<0>(patch).height / 2.0;
+
+		algorithms::Point point = algorithms::Point(centerX, centerY, std::get<0>(patch));
+		point.features = std::get<2>(patch);
+
+		points.push_back(point);
+
+	}
+
+	std::vector<algorithms::Point> centroids;
+	centroids = algorithms::kMeansClustering(&points, iterations, Kclusters, heuristicFunc);
+
+	int markSize = 20;
+	int markThickness = 2;
+	cv::Scalar markColor = cv::Scalar(0, 0, 0);
+
+	std::vector<int> clusterIds;
+	std::transform(points.begin(), points.end(), std::back_inserter(clusterIds), [](algorithms::Point x) {
+		return x.cluster;
+		});
+
+	int maxClusterId = *std::max_element(clusterIds.begin(), clusterIds.end());
+
+	std::vector<Vec3b> randomColors = algorithms::getRandomColors(maxClusterId + 1);
+
+	for (auto const& point : points) {
+		dst(point.patchRect).setTo(cv::Scalar(randomColors[point.cluster]));
+	}
+
+	return dst;
+}
+
+/* Threaded testing.... */
+
+void thFunction(int testNumber, std::string fname, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
+	Mat_<Vec3b> dstImage = tiger_detection::computeTigerImageClusters(fname, iterations, Kclusters, patchSize, heuristicFunc);
+
+	if (!imwrite(std::string(OUTPUT_TEST_DIR) + std::to_string(testNumber) + fname.substr(INPUT_TEST_DIR_LEN), dstImage)) {
+		std::cout << "Error: Destination image not created: " << fname << "\n";
+	}
+	else {
+		std::cout << "Destination image created: " << fname << "\n";
+	}
+}
+
+void tiger_detection::threadedTestImages(int testNumber, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other), std::string heuristicFuncName) {
+		
+	std::pair<std::vector<std::string>, std::vector<std::string>> dirsAndFiles = file_tester::obtainFileNames();
+
+	file_tester::makeTestDirs(testNumber, dirsAndFiles.first, iterations, Kclusters, patchSize, heuristicFuncName);
+
+	std::cout << "Clustering images..." << "\n";
+
+	std::vector<std::thread> threads;
+	for (auto const& fileName : dirsAndFiles.second) {
+		std::thread th(thFunction, testNumber, fileName, iterations, Kclusters, patchSize, heuristicFunc);
+		threads.push_back(std::move(th));
+	}
+
+	for (auto& thr : threads) {
+		thr.join();
+	}
+}
 
 int main()
 {
 
-	// 2 - K-means clustering example
+	// 1 - K-means clustering example
 	int iterations = 0;
 	int Kclusters = 0;
 	int patchSize = 8;
 
-	// 3 - Binned histogram
+	// 2 - Binned histogram
 	int bins = 1;
 
 	//----------------------------------------------------------------------
@@ -253,19 +241,16 @@ int main()
 		system("cls");
 		destroyAllWindows();
 		printf("Menu:\n");
-		printf(" 1 - Color to Gray\n");
-		printf(" 2 - K-means clustering example\n");
-		printf(" 3 - Binned histogram\n");
-		printf(" 4 - Show image features\n");
+		printf(" 1 - K-means clustering example\n");
+		printf(" 2 - Binned histogram\n");
+		printf(" 3 - Show image features\n");
+		printf(" 4 - Test folder of tiger images (parallel testing)\n");
 		printf(" 0 - Exit\n\n");
 		printf("Option: ");
 		scanf("%d", &op);
 		switch (op)
 		{
 			case 1:
-				testColor2Gray();
-				break;
-			case 2:
 				std::cout << "Iterations:\n";
 				std::cin >> iterations;
 				std::cout << "Number of clusters:\n";
@@ -273,16 +258,19 @@ int main()
 				std::cout << "Patch size:\n";
 				std::cin >> patchSize;
 
-				showClusters(iterations, Kclusters, patchSize);
+				tiger_detection::showClusters(iterations, Kclusters, patchSize, algorithms::cosineSimilarityHeuristic);
 				break;
-			case 3:
+			case 2:
 				std::cout << "Number of bins:\n";
 				std::cin >> bins;
 
-				showBinnedHistogram(bins);
+				tiger_detection::showBinnedHistogram(bins);
+				break;
+			case 3:
+				tiger_detection::showImageFeatures();
 				break;
 			case 4:
-				showImageFeatures();
+				tiger_detection::threadedTestImages(1, 10, 5, 8, algorithms::cosineSimilarityHeuristic, std::string("cosine similarity"));
 				break;
 			default:
 				break;
