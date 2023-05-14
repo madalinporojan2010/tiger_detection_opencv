@@ -208,8 +208,8 @@ cv::Mat custom_glcm::MatCoocAdd(cv::Mat img, int N, std::vector<int> deltax, std
 
 std::vector<double> custom_glcm::getFeatures(cv::Mat_<uchar> img) {
     std::vector<double> features;
-    std::vector<int> deltax{ 0,8,16,24,32,40,48,56,64,72 };
-    std::vector<int> deltay{ 0,0,0,0,0,0,0,0,0,0 };
+    std::vector<int> deltax{ 1 };
+    std::vector<int> deltay{ 0 };
     cv::Mat ans = MatCoocAdd(img, 255, deltax, deltay);
 
     std::vector<double> probx = MargProbx(ans);
