@@ -14,7 +14,7 @@ namespace tiger_detection {
 
 	cv::Mat_<Vec3b> computeTigerImageClusters(const cv::String fname, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other));
 
-	void threadedTestImages(int testNumber, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other), std::string heuristicFuncName);
+	std::vector<std::thread> threadedTestImages(int testNumber, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other), std::string heuristicFuncName);
 
 	void randomizedTesting(int numberOfTests);
 };

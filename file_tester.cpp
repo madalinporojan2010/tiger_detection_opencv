@@ -45,17 +45,17 @@ void file_tester::makeTestDirs(int testNumber, std::vector<std::string> dirs, in
 		std::string dirName = std::string(OUTPUT_TEST_DIR) + std::to_string(testNumber) + dir.substr(INPUT_TEST_DIR_LEN);
 		dirName = replaceAll(dirName, std::string("\\"), std::string("\\\\"));
 		if (std::filesystem::remove_all(dirName.c_str())) {
-			std::cout << "Deleted dir: " << dirName << "\n";
+			std::cout << "Test #" << std::to_string(testNumber) << ": Deleted dir: " << dirName << "\n";
 		}
 		else {
-			std::cout << "Dir not deleted or it doesnt exist: " << dirName << "\n";
+			std::cout << "Test #" << std::to_string(testNumber) << ": Dir not deleted or it doesnt exist: " << dirName << "\n";
 		}
 
 		if (std::filesystem::create_directories(dirName.c_str())) {
-			std::cout << "Created dir: " << dirName << "\n";
+			std::cout << "Test #" << std::to_string(testNumber) << ": Created dir: " << dirName << "\n";
 		}
 		else {
-			std::cout << "Could not create dir: " << dirName << "\n";
+			std::cout << "Test #" << std::to_string(testNumber) << ": Could not create dir: " << dirName << "\n";
 		}
 	}
 	file_tester::createInfoFile(testNumber, iterations, Kclusters, patchSize, heuristicFuncName);

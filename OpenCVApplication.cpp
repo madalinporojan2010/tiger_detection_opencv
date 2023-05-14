@@ -202,29 +202,28 @@ void thThreadedTestImages(int testNumber, std::string fname, int iterations, int
 	Mat_<Vec3b> dstImage = tiger_detection::computeTigerImageClusters(fname, iterations, Kclusters, patchSize, heuristicFunc);
 
 	if (!imwrite(std::string(OUTPUT_TEST_DIR) + std::to_string(testNumber) + fname.substr(INPUT_TEST_DIR_LEN), dstImage)) {
-		std::cout << "Error: Destination image not created: " << fname << "\n";
+		std::cout << "Error: " << "Test #" << std::to_string(testNumber) << ": Destination image not created: " << fname << "\n";
 	}
 	else {
-		std::cout << "Destination image created: " << fname << "\n";
+		std::cout << "Test #" << std::to_string(testNumber) << ": Destination image created: " << fname << "\n";
 	}
 }
 
-void tiger_detection::threadedTestImages(int testNumber, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other), std::string heuristicFuncName) {
+std::vector<std::thread> tiger_detection::threadedTestImages(int testNumber, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other), std::string heuristicFuncName) {
 		
 	std::pair<std::vector<std::string>, std::vector<std::string>> dirsAndFiles = file_tester::obtainFileNames();
 
 	file_tester::makeTestDirs(testNumber, dirsAndFiles.first, iterations, Kclusters, patchSize, heuristicFuncName);
 
-	std::cout << "Clustering images..." << "\n";
+	std::cout << "Test #" << std::to_string(testNumber) << ": Clustering images..." << "\n";
 
 	std::vector<std::thread> threads;
 	for (auto const& fileName : dirsAndFiles.second) {
 		std::thread th(thThreadedTestImages, testNumber, fileName, iterations, Kclusters, patchSize, heuristicFunc);
 		threads.push_back(std::move(th));
 	}
-	for (auto& thr : threads) {
-		thr.join();
-	}
+	
+	return threads;
 }
 
 void tiger_detection::randomizedTesting(int numberOfTests) {
@@ -238,22 +237,23 @@ void tiger_detection::randomizedTesting(int numberOfTests) {
 	std::vector<std::thread> threads;
 	
 	for (int i = 1; i <= numberOfTests; i++) {
+		std::vector<std::thread> localThreads;
 		std::cout << "Starting test #" << i << "\n";
-
-		std::thread th;
 		int funcNum = distFunctionNumber(rng);
 		if (funcNum == 0) {
-			th = std::thread(tiger_detection::threadedTestImages, i, distIterations(rng), distKclusters(rng), defaultPatchSizes[distPatchSize(rng)], algorithms::euclidianHeuristic, "Euclidian Distance");
+			localThreads = tiger_detection::threadedTestImages(i, distIterations(rng), distKclusters(rng), defaultPatchSizes[distPatchSize(rng)], algorithms::euclidianHeuristic, "Euclidian Distance");
 		}
 		else {
-			th = std::thread(tiger_detection::threadedTestImages, i, distIterations(rng), distKclusters(rng), defaultPatchSizes[distPatchSize(rng)], algorithms::cosineSimilarityHeuristic, "Cosine Similarity Distance");
+			localThreads = tiger_detection::threadedTestImages(i, distIterations(rng), distKclusters(rng), defaultPatchSizes[distPatchSize(rng)], algorithms::cosineSimilarityHeuristic, "Cosine Similarity Distance");
 		}
 
-		threads.push_back(std::move(th));
+		for (auto& th : localThreads) {
+			threads.push_back(std::move(th));
+		}
 	}
 
-	for (auto& thr : threads) {
-		thr.join();
+	for (auto& th : threads) {
+		th.join();
 	}
 }
 
