@@ -291,9 +291,9 @@ int main()
 		printf(" 5 - Test folder of tiger images (parallel testing)\n");
 		printf(" 0 - Exit\n\n");
 		printf("Option: ");
-		scanf("%d", &op);
-		switch (op)
-		{
+		if (scanf("%d", &op) == 1) {
+			switch (op)
+			{
 			case 1:
 				std::cout << "Iterations:\n";
 				std::cin >> iterations;
@@ -325,6 +325,7 @@ int main()
 				break;
 			default:
 				break;
+			}
 		}
 	}
 	while (op!=0);
