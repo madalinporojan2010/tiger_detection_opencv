@@ -130,7 +130,7 @@ void tiger_detection::showImageFeatures() {
 
 		for (const auto feature : custom_glcm::getFeatures(src)) {
 
-			std::cout << feature<<std::endl;
+			std::cout << feature << std::endl;
 		}
 		waitKey();
 	}
@@ -138,7 +138,7 @@ void tiger_detection::showImageFeatures() {
 
 // Image clustering funcion
 cv::Mat_<Vec3b> tiger_detection::computeTigerImageClusters(const cv::String fname, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
-	
+
 	Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
 	Mat_<Vec3b> src_color = imread(fname);
 	Mat_<Vec3b> src_hsv = imread(fname);
@@ -214,7 +214,7 @@ void thThreadedTestImages(int testNumber, std::string fname, int iterations, int
 
 // Function used for testing a single file (generating the image clusters)
 std::vector<std::thread> tiger_detection::threadedTestImages(int testNumber, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other), std::string heuristicFuncName) {
-		
+
 	std::pair<std::vector<std::string>, std::vector<std::string>> dirsAndFiles = file_tester::obtainFileNames();
 
 	file_tester::makeTestDirs(testNumber, dirsAndFiles.first, iterations, Kclusters, patchSize, heuristicFuncName);
@@ -226,7 +226,7 @@ std::vector<std::thread> tiger_detection::threadedTestImages(int testNumber, int
 		std::thread th(thThreadedTestImages, testNumber, fileName, iterations, Kclusters, patchSize, heuristicFunc);
 		threads.push_back(std::move(th));
 	}
-	
+
 	return threads;
 }
 
@@ -235,12 +235,12 @@ void tiger_detection::randomizedTesting(int numberOfTests) {
 	std::uniform_int_distribution<std::mt19937::result_type> distIterations(15, 60);
 	std::uniform_int_distribution<std::mt19937::result_type> distKclusters(2, 20);
 
-	std::vector<int> defaultPatchSizes{8, 16};
+	std::vector<int> defaultPatchSizes{ 8, 16 };
 	std::uniform_int_distribution<std::mt19937::result_type> distPatchSize(0, 1);
 	std::uniform_int_distribution<std::mt19937::result_type> distFunctionNumber(0, 1);
 
 	std::vector<std::thread> threads;
-	
+
 	for (int i = 1; i <= numberOfTests; i++) {
 		std::vector<std::thread> localThreads;
 		std::cout << "Starting test #" << i << "\n";
@@ -327,7 +327,6 @@ int main()
 				break;
 			}
 		}
-	}
-	while (op!=0);
+	} while (op != 0);
 	return 0;
 }
