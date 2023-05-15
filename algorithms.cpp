@@ -6,6 +6,7 @@
 std::default_random_engine gen;
 std::uniform_int_distribution<int> d(0, 255);
 
+// k-means clustering
 std::vector<algorithms::Point> algorithms::kMeansClustering(std::vector<algorithms::Point> *points, int iterations, int Kclusters, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
     // initializing the clusters
     std::vector<algorithms::Point> centroids;
@@ -60,6 +61,8 @@ std::vector<algorithms::Point> algorithms::kMeansClustering(std::vector<algorith
     return centroids;
 }
 
+
+// binned histogram
 std::vector<int> algorithms::binnedHistogram(Mat_<uchar> src, int numberOfBins) {
     int height = src.rows;
     int width = src.cols;
@@ -82,10 +85,12 @@ std::vector<int> algorithms::binnedHistogram(Mat_<uchar> src, int numberOfBins) 
     return hist;
 }
 
+// color comparison
 bool algorithms::compareColors(Vec3b colorA, Vec3b colorB) {
     return colorA[0] == colorB[0] && colorA[1] == colorB[1] && colorA[2] == colorB[2];
 }
 
+// generates a random color
 std::vector<Vec3b> algorithms::getRandomColors(int size) {
     std::vector<Vec3b> colors(size, Vec3b(255, 255, 255));
 
@@ -99,6 +104,7 @@ std::vector<Vec3b> algorithms::getRandomColors(int size) {
     return colors;
 }
 
+// calculates the euclidian distance between 2 point features
 double algorithms::euclidianHeuristic(Point p, Point other) {
     double featuresCoefficient = 0.0;
     for (int i = 0; i < p.features.size(); i++) {
@@ -119,6 +125,7 @@ double algorithms::euclidianHeuristic(Point p, Point other) {
     return featuresCoefficient;
 }
 
+// calculates the cosine similarity distance between 2 point features
 double algorithms::cosineSimilarityHeuristic(Point p, Point other) {
     double s1 = 0.0, s2 = 0.0, s3 = 0.0;
     for (int i = 0; i < p.features.size(); i++) {

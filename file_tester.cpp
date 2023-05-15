@@ -7,6 +7,7 @@
 #include <utility>
 #include <fstream>
 
+// obtain the file names in a directory and the directory names
 std::pair<std::vector<std::string>, std::vector<std::string>> file_tester::obtainFileNames() {
 	std::vector<std::string> directories;
 	std::vector<std::string> fileNames;
@@ -21,6 +22,8 @@ std::pair<std::vector<std::string>, std::vector<std::string>> file_tester::obtai
 	return std::make_pair(directories, fileNames);
 }
 
+
+// replaces all the `from` occurences from a string with `to` string
 std::string replaceAll(std::string str, const std::string& from, const std::string& to) {
 	size_t start_pos = 0;
 	while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
@@ -30,6 +33,7 @@ std::string replaceAll(std::string str, const std::string& from, const std::stri
 	return str;
 }
 
+// creates an info file with the given parameters for the test
 void file_tester::createInfoFile(int testNumber, int iterations, int Kclusters, int patchSize, std::string heuristicFuncName) {
 	// create properties file
 	std::ofstream outfile(std::string(OUTPUT_TEST_DIR) + std::to_string(testNumber) + std::string("\\") + TEST_PROPS_FILENAME);
@@ -40,6 +44,7 @@ void file_tester::createInfoFile(int testNumber, int iterations, int Kclusters, 
 	outfile << "HEURISTIC FUNCTION USED: " << heuristicFuncName << "\n";
 }
 
+// creates all the directories where the clustered images will be stored
 void file_tester::makeTestDirs(int testNumber, std::vector<std::string> dirs, int iterations, int Kclusters, int patchSize, std::string heuristicFuncName) {
 	for (const auto& dir : dirs) {
 		std::string dirName = std::string(OUTPUT_TEST_DIR) + std::to_string(testNumber) + dir.substr(INPUT_TEST_DIR_LEN);
