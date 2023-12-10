@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "common.h"
 #include "algorithms.h"
-#include "custom_glcm.h"
 #include "OpenCVApplication.h"
 #include "file_tester.h"
 #include <random>
@@ -11,7 +10,7 @@ std::random_device dev;
 std::mt19937 rng(dev());
 
 // Function for showing the histogram in a visual form
-void tiger_detection::showHistogram(const std::string& name, std::vector<int> hist, const int  hist_cols, const int hist_height) {
+void Segmentation::showHistogram(const std::string& name, std::vector<int> hist, const int  hist_cols, const int hist_height) {
 	Mat imgHist(hist_height, hist_cols, CV_8UC3, CV_RGB(255, 255, 255)); // constructs a white image
 
 	//computes histogram maximum
@@ -33,7 +32,7 @@ void tiger_detection::showHistogram(const std::string& name, std::vector<int> hi
 }
 
 // Function for creating patches of a given size, from a given Mat src
-std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> tiger_detection::createPatches(Mat src, Mat src_hue, int patchSize) {
+std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> Segmentation::createPatches(Mat src_color, Mat src, Mat src_hue, int patchSize) {
 	int height = src.rows;
 	int width = src.cols;
 
@@ -46,7 +45,7 @@ std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> tiger_detection:
 			cv::Rect patch_rect(j, i, min(patch_size.width, width - j - 1), min(patch_size.height, height - i - 1));
 			cv::Mat patch = src(patch_rect);
 
-			std::vector<double> features = custom_glcm::getFeatures(patch);
+			std::vector<double> features = std::vector({ src_color.at<Vec3b>(i,j)[0] * 1.0, src_color.at<Vec3b>(i,j)[1] * 1.0, src_color.at<Vec3b>(i,j)[2] * 1.0 });
 			std::vector<int> histoPatch = algorithms::binnedHistogram(src_hue(patch_rect), patchSize);
 			std::vector<int> histoPatchNorm;
 
@@ -63,23 +62,29 @@ std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> tiger_detection:
 }
 
 // Function for showing the clusters of an image in a visual form 
-void tiger_detection::showClusters(int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
+void Segmentation::showClusters(int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
 
 	char fname[MAX_PATH];
 	while (openFileDlg(fname))
 	{
 		Mat_<Vec3b> src_color = imread(fname);
-		Mat_<Vec3b> dst = tiger_detection::computeTigerImageClusters(fname, iterations, Kclusters, patchSize, heuristicFunc);
+		Mat_<Vec3b> dstHSV = Segmentation::computeImageClusters(fname, "HSV", iterations, Kclusters, patchSize, heuristicFunc);
+		Mat_<Vec3b> dstLab = Segmentation::computeImageClusters(fname, "Lab", iterations, Kclusters, patchSize, heuristicFunc);
+		Mat_<Vec3b> dstYUV = Segmentation::computeImageClusters(fname, "YUV", iterations, Kclusters, patchSize, heuristicFunc);
+		Mat_<Vec3b> dstYCrCb = Segmentation::computeImageClusters(fname, "YCrCb", iterations, Kclusters, patchSize, heuristicFunc);
 
 		imshow("original image", src_color);
-		imshow("clustered image", dst);
+		imshow("HSV", dstHSV);
+		imshow("Lab", dstLab);
+		imshow("YUV", dstYUV);
+		imshow("YCrCb", dstYCrCb);
 
 		waitKey();
 	}
 }
 
 // Function for showing the binned histogram in a visual form
-void tiger_detection::showBinnedHistogram(int numberOfBins) {
+void Segmentation::showBinnedHistogram(int numberOfBins) {
 	char fname[MAX_PATH];
 	while (openFileDlg(fname)) {
 		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
@@ -113,34 +118,38 @@ void tiger_detection::showBinnedHistogram(int numberOfBins) {
 
 		imshow("Original Image", src);
 		imshow("Image Patch", src(patch_rect));
-		tiger_detection::showHistogram("Binned Histogram for given patch", showedHist, showedHist.size(), 100);
+		Segmentation::showHistogram("Binned Histogram for given patch", showedHist, showedHist.size(), 100);
 		waitKey();
 	}
 }
 
-// GLCM features info from a given image
-void tiger_detection::showImageFeatures() {
-
-	char fname[MAX_PATH];
-	while (openFileDlg(fname)) {
-		double t = (double)getTickCount(); // Get the current time [s]
-
-		Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
-
-
-		for (const auto feature : custom_glcm::getFeatures(src)) {
-
-			std::cout << feature << std::endl;
-		}
-		waitKey();
+Mat cvtToReadType(Mat src, const std::string readType) {
+	Mat dst;
+	if (readType == "HSV") {
+		cv::cvtColor(src, dst, COLOR_BGR2HSV);
+		return dst;
 	}
+	else if (readType == "Lab") {
+		cv::cvtColor(src, dst, COLOR_BGR2Lab);
+		return dst;
+	}
+	else if (readType == "YUV") {
+		cv::cvtColor(src, dst, COLOR_BGR2YUV);
+		return dst;
+	}
+	else if (readType == "YCrCb") {
+		cv::cvtColor(src, dst, COLOR_BGR2YCrCb);
+		return dst;
+	}
+	return src;
 }
 
 // Image clustering funcion
-cv::Mat_<Vec3b> tiger_detection::computeTigerImageClusters(const cv::String fname, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
+cv::Mat_<Vec3b> Segmentation::computeImageClusters(const cv::String fname, const std::string readType, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
 
 	Mat_<uchar> src = imread(fname, IMREAD_GRAYSCALE);
 	Mat_<Vec3b> src_color = imread(fname);
+	Mat_<Vec3b> src_read_color = cvtToReadType(src_color, readType);
 	Mat_<Vec3b> src_hsv = imread(fname);
 	std::vector<Mat> hsv_planes;
 	Mat_<uchar> src_hue;
@@ -162,7 +171,7 @@ cv::Mat_<Vec3b> tiger_detection::computeTigerImageClusters(const cv::String fnam
 	std::vector<algorithms::Point> points;
 
 
-	std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches = tiger_detection::createPatches(src, src_hue, patchSize);
+	std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches = Segmentation::createPatches(src_read_color, src, src_hue, patchSize);
 
 	for (const auto patch : patches) {
 		double centerX = (double)std::get<0>(patch).width / 2.0;
@@ -201,8 +210,8 @@ cv::Mat_<Vec3b> tiger_detection::computeTigerImageClusters(const cv::String fnam
 /* Threaded testing.... */
 
 // Function used for the testing threads
-void thThreadedTestImages(int testNumber, std::string fname, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
-	Mat_<Vec3b> dstImage = tiger_detection::computeTigerImageClusters(fname, iterations, Kclusters, patchSize, heuristicFunc);
+void thThreadedTestImages(int testNumber, std::string fname, const std::string readType, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other)) {
+	Mat_<Vec3b> dstImage = Segmentation::computeImageClusters(fname, readType, iterations, Kclusters, patchSize, heuristicFunc);
 
 	if (!imwrite(std::string(OUTPUT_TEST_DIR) + std::to_string(testNumber) + fname.substr(INPUT_TEST_DIR_LEN), dstImage)) {
 		std::cout << "Error: " << "Test #" << std::to_string(testNumber) << ": Destination image not created: " << fname << "\n";
@@ -213,7 +222,7 @@ void thThreadedTestImages(int testNumber, std::string fname, int iterations, int
 }
 
 // Function used for testing a single file (generating the image clusters)
-std::vector<std::thread> tiger_detection::threadedTestImages(int testNumber, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other), std::string heuristicFuncName) {
+std::vector<std::thread> Segmentation::threadedTestImages(int testNumber, const std::string readType, int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other), std::string heuristicFuncName) {
 
 	std::pair<std::vector<std::string>, std::vector<std::string>> dirsAndFiles = file_tester::obtainFileNames();
 
@@ -223,7 +232,7 @@ std::vector<std::thread> tiger_detection::threadedTestImages(int testNumber, int
 
 	std::vector<std::thread> threads;
 	for (auto const& fileName : dirsAndFiles.second) {
-		std::thread th(thThreadedTestImages, testNumber, fileName, iterations, Kclusters, patchSize, heuristicFunc);
+		std::thread th(thThreadedTestImages, testNumber, fileName, readType, iterations, Kclusters, patchSize, heuristicFunc);
 		threads.push_back(std::move(th));
 	}
 
@@ -231,7 +240,7 @@ std::vector<std::thread> tiger_detection::threadedTestImages(int testNumber, int
 }
 
 // Function used for testing multiple files with randomized arguments values
-void tiger_detection::randomizedTesting(int numberOfTests) {
+void Segmentation::randomizedTesting(int numberOfTests, const std::string readType) {
 	std::uniform_int_distribution<std::mt19937::result_type> distIterations(15, 60);
 	std::uniform_int_distribution<std::mt19937::result_type> distKclusters(2, 20);
 
@@ -246,10 +255,10 @@ void tiger_detection::randomizedTesting(int numberOfTests) {
 		std::cout << "Starting test #" << i << "\n";
 		int funcNum = distFunctionNumber(rng);
 		if (funcNum == 0) {
-			localThreads = tiger_detection::threadedTestImages(i, distIterations(rng), distKclusters(rng), defaultPatchSizes[distPatchSize(rng)], algorithms::euclidianHeuristic, "Euclidian Distance");
+			localThreads = Segmentation::threadedTestImages(i, readType, distIterations(rng), distKclusters(rng), defaultPatchSizes[distPatchSize(rng)], algorithms::euclidianHeuristic, "Euclidian Distance");
 		}
 		else {
-			localThreads = tiger_detection::threadedTestImages(i, distIterations(rng), distKclusters(rng), defaultPatchSizes[distPatchSize(rng)], algorithms::cosineSimilarityHeuristic, "Cosine Similarity Distance");
+			localThreads = Segmentation::threadedTestImages(i, readType, distIterations(rng), distKclusters(rng), defaultPatchSizes[distPatchSize(rng)], algorithms::cosineSimilarityHeuristic, "Cosine Similarity Distance");
 		}
 
 		for (auto& th : localThreads) {
@@ -286,7 +295,6 @@ int main()
 		printf("Menu:\n");
 		printf(" 1 - K-means clustering example\n");
 		printf(" 2 - Binned histogram\n");
-		printf(" 3 - Show image features\n");
 		printf(" 4 - EXAMPLE: Test folder of tiger images (parallel testing)\n");
 		printf(" 5 - Test folder of tiger images (parallel testing)\n");
 		printf(" 0 - Exit\n\n");
@@ -302,25 +310,22 @@ int main()
 				std::cout << "Patch size:\n";
 				std::cin >> patchSize;
 
-				tiger_detection::showClusters(iterations, Kclusters, patchSize, algorithms::cosineSimilarityHeuristic);
+				Segmentation::showClusters(iterations, Kclusters, patchSize, algorithms::euclidianHeuristic);
 				break;
 			case 2:
 				std::cout << "Number of bins:\n";
 				std::cin >> bins;
 
-				tiger_detection::showBinnedHistogram(bins);
-				break;
-			case 3:
-				tiger_detection::showImageFeatures();
+				Segmentation::showBinnedHistogram(bins);
 				break;
 			case 4:
-				tiger_detection::threadedTestImages(1, 10, 5, 8, algorithms::cosineSimilarityHeuristic, std::string("cosine similarity"));
+				Segmentation::threadedTestImages(1, "HSV", 10, 5, 8, algorithms::euclidianHeuristic, std::string("euclidiane heuristic"));
 				break;
 			case 5:
 				std::cout << "Number of randomized tests: \n";
 				std::cin >> numberOfTests;
 
-				tiger_detection::randomizedTesting(numberOfTests);
+				Segmentation::randomizedTesting(numberOfTests, "HSV");
 
 				break;
 			default:
