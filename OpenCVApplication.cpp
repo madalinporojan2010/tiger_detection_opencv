@@ -31,8 +31,24 @@ void Segmentation::showHistogram(const std::string& name, std::vector<int> hist,
 	imshow(name, imgHist);
 }
 
+std::vector<double> getColorComponents(const std::string readType, Vec3b src_color) {
+	if (readType == "HSV") {
+		return std::vector<double>({ src_color[0] * 1.0, src_color[1] * 1.0 });
+	}
+	else if (readType == "Lab") {
+		return std::vector<double>({ src_color[1] * 1.0, src_color[2] * 1.0 });
+	}
+	else if (readType == "YUV") {
+		return std::vector<double>({ src_color[1] * 1.0, src_color[2] * 1.0 });
+	}
+	else if (readType == "YCrCb") {
+		return std::vector<double>({ src_color[1] * 1.0, src_color[2] * 1.0 });
+	}
+	return std::vector<double>();
+}
+
 // Function for creating patches of a given size, from a given Mat src
-std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> Segmentation::createPatches(Mat src_color, Mat src, Mat src_hue, int patchSize) {
+std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> Segmentation::createPatches(const std::string readType,Mat src_color, Mat src, Mat src_hue, int patchSize) {
 	int height = src.rows;
 	int width = src.cols;
 
@@ -45,7 +61,7 @@ std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> Segmentation::cr
 			cv::Rect patch_rect(j, i, min(patch_size.width, width - j - 1), min(patch_size.height, height - i - 1));
 			cv::Mat patch = src(patch_rect);
 
-			std::vector<double> features = std::vector({ src_color.at<Vec3b>(i,j)[0] * 1.0, src_color.at<Vec3b>(i,j)[1] * 1.0, src_color.at<Vec3b>(i,j)[2] * 1.0 });
+			std::vector<double> features = getColorComponents(readType, src_color.at<Vec3b>(i,j));
 			std::vector<int> histoPatch = algorithms::binnedHistogram(src_hue(patch_rect), patchSize);
 			std::vector<int> histoPatchNorm;
 
@@ -53,7 +69,7 @@ std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> Segmentation::cr
 				histoPatchNorm.push_back(histoPatch.at(i) / (patchSize * patchSize));
 			}
 
-			features.insert(features.end(), histoPatch.begin(), histoPatch.end());
+			//features.insert(features.end(), histoPatch.begin(), histoPatch.end());
 
 			patches.push_back(std::make_tuple(patch_rect, patch, features));
 		}
@@ -74,10 +90,10 @@ void Segmentation::showClusters(int iterations, int Kclusters, int patchSize, do
 		Mat_<Vec3b> dstYCrCb = Segmentation::computeImageClusters(fname, "YCrCb", iterations, Kclusters, patchSize, heuristicFunc);
 
 		imshow("original image", src_color);
-		imshow("HSV", dstHSV);
-		imshow("Lab", dstLab);
-		imshow("YUV", dstYUV);
-		imshow("YCrCb", dstYCrCb);
+		imshow("HS", dstHSV);
+		imshow("AB", dstLab);
+		imshow("UV", dstYUV);
+		imshow("CrCb", dstYCrCb);
 
 		waitKey();
 	}
@@ -153,6 +169,10 @@ cv::Mat_<Vec3b> Segmentation::computeImageClusters(const cv::String fname, const
 	Mat_<Vec3b> src_hsv = imread(fname);
 	std::vector<Mat> hsv_planes;
 	Mat_<uchar> src_hue;
+	GaussianBlur(src, src, Size(7, 7), 1.5, 1.5);
+	GaussianBlur(src_color, src_color, Size(7, 7), 1.5, 1.5);
+	GaussianBlur(src_read_color, src_read_color, Size(7, 7), 1.5, 1.5);
+
 
 	cv::cvtColor(src_color, src_hsv, COLOR_BGR2HSV);
 	split(src_hsv, hsv_planes);
@@ -171,7 +191,7 @@ cv::Mat_<Vec3b> Segmentation::computeImageClusters(const cv::String fname, const
 	std::vector<algorithms::Point> points;
 
 
-	std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches = Segmentation::createPatches(src_read_color, src, src_hue, patchSize);
+	std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> patches = Segmentation::createPatches(readType, src_read_color, src, src_hue, patchSize);
 
 	for (const auto patch : patches) {
 		double centerX = (double)std::get<0>(patch).width / 2.0;

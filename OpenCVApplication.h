@@ -4,7 +4,7 @@
 namespace Segmentation {
 	void showHistogram(const std::string& name, std::vector<int> hist, const int  hist_cols, const int hist_height);
 
-	std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> createPatches(Mat src_color, Mat src, Mat src_hue, int patchSize);
+	std::vector<std::tuple<cv::Rect, cv::Mat, std::vector<double>>> createPatches(const std::string readType,Mat src_color, Mat src, Mat src_hue, int patchSize);
 
 	void showClusters(int iterations, int Kclusters, int patchSize, double(*heuristicFunc)(algorithms::Point p, algorithms::Point other));
 
